@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: vatsal_db_user
+      POSTGRES_PASSWORD: vatsal_db_password
+      POSTGRES_DB: vatsal_bath_gallery
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
