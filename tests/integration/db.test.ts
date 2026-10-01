@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { prisma } from '../../src/lib/db/client';
 
 describe('Database Integration', () => {
@@ -10,6 +10,6 @@ describe('Database Integration', () => {
   it.skipIf(!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('testdb'))('connects to the database successfully', async () => {
     const result = await prisma.$queryRaw`SELECT 1 as result`;
     expect(Array.isArray(result)).toBe(true);
-    expect((result as any[])[0].result).toBe(1);
+    expect((result as Array<{ result: number }>)[0].result).toBe(1);
   });
 });
