@@ -2,7 +2,7 @@ import { Role } from '@prisma/client';
 
 export type Permission = 
   | 'dashboard:read'
-  | 'catalogue:read' | 'catalogue:create' | 'catalogue:update' | 'catalogue:delete'
+  | 'catalogue:read' | 'catalogue:create' | 'catalogue:update' | 'catalogue:archive'
   | 'inventory:read' | 'inventory:adjust' | 'inventory:manage'
   | 'customers:read' | 'customers:create' | 'customers:update' | 'customers:delete'
   | 'estimates:read' | 'estimates:create' | 'estimates:update' | 'estimates:delete'
@@ -17,7 +17,7 @@ export type Permission =
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   OWNER: [
     'dashboard:read',
-    'catalogue:read', 'catalogue:create', 'catalogue:update', 'catalogue:delete',
+    'catalogue:read', 'catalogue:create', 'catalogue:update', 'catalogue:archive',
     'inventory:read', 'inventory:adjust', 'inventory:manage',
     'customers:read', 'customers:create', 'customers:update', 'customers:delete',
     'estimates:read', 'estimates:create', 'estimates:update', 'estimates:delete',

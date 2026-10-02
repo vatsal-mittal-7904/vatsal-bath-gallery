@@ -23,7 +23,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  sessions     Session[]
+  sessions Session[]
 }
 
 model Session {
@@ -35,4 +35,66 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children  Category[] @relation("CategoryHierarchy")
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  products Product[]
+
+  @@unique([name, parentId])
+  @@index([parentId])
+}
+
+model Brand {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brandId     String?
+  brand       Brand?   @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  variants ProductVariant[]
+
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+model ProductVariant {
+  id         String  @id @default(uuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sku        String  @unique
+  barcode    String? @unique
+  attributes Json    @default("{}") // e.g. { "size": "L", "color": "red" }
+
+  sellingPrice Decimal  @db.Decimal(10, 2)
+  costPrice    Decimal? @db.Decimal(10, 2) // Optional, confidential
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
 }
