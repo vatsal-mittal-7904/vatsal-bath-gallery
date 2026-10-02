@@ -17,9 +17,10 @@ async function logoutHandler(req: NextRequest) {
   if (token) {
     try {
       await revokeSession(token);
-    } catch (e) {
-      // Even if revocation fails (e.g. DB error), we still want to clear the cookie.
-      console.error('Failed to revoke session in database during logout:', e);
+    } catch (error) {
+      // Clear cookie as a best-effort fallback but bubble up the 500 error
+      await clearSessionCookie();
+      throw new AppError('Failed to revoke session on server', 500, 'INTERNAL_SERVER_ERROR');
     }
   }
 

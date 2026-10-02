@@ -140,3 +140,38 @@ Unauthorized requests are trapped and forwarded to the central Pino logger (e.g.
 - Hides/displays internal quick action buttons (like "Profit Reports" and "Manage Users") purely on frontend `hasPermission` evaluations.
 - Server validation in `(protected)/layout.tsx` guarantees that circumventing these client-side conditional render blocks still results in a server `403` boundary.
 - **Logout:** Dispatches a `POST /api/v1/auth/logout`. Afterwards, physically flushes Next.js route memory by hard navigating `window.location.href = '/login'`.
+
+## Subphase 2.6: Authentication Testing and Security Audit
+
+### 1. Timing Attack Mitigation
+- Identified that `POST /api/v1/auth/login` would quickly reject non-existent users before hashing, allowing malicious actors to enumerate valid email addresses based on request latency.
+- Introduced `verifyDummyPassword` in `password.utils.ts` to enforce uniform time-delay via `argon2.hash` whenever a user doesn't exist or is inactive, neutralizing timing variance.
+
+### 2. Robust Revocation Failure Handling
+- Identified that `POST /api/v1/auth/logout` would silently catch database errors and return a `200 OK` despite failing to revoke the session from the backend. 
+- Refactored `logout/route.ts` to always clear the frontend cookie but explicitly throw a `500 INTERNAL_SERVER_ERROR` if backend revocation fails, preventing users from receiving false confirmation of total backend revocation.
+
+### 3. Suspense Boundary for Client Rendering
+- The `LoginForm` reads `?next=` via `useSearchParams()`. During static build time, Next.js requires this to be encapsulated within a `<Suspense>` boundary to prevent CSR rendering bailouts.
+- Corrected in `src/app/(public)/login/page.tsx` for optimal production builds.
+
+### 4. Endpoints & API Guard Audit
+- Verified `src/app/api/v1/auth/me` explicitly runs `requireAuthenticatedUser()`.
+- Verified `DashboardClient.tsx` conditional UI rendering correctly maps to `users:role:update` and `reports:profit:read`.
+- Found no unprotected sensitive endpoints because the API currently strictly consists of health checks and basic Auth handlers.
+
+### 5. Dependency Audit
+- Ran `npm audit`. Found `deepmerge-ts` vulnerability in `@prisma/config` (Dev dependency stack exhaustion).
+- Documented as Low-Risk: Occurs exclusively during build/compilation via Prisma internals, never processes runtime client payloads. Decided against forced upgrades to adhere to stable `6.4.x` compatibility constraints as mandated by previous workflow rules.
+
+### 6. CSRF & Security Tests
+- Re-verified the manual check for `origin.startsWith(env.APP_BASE_URL)`. 
+- Extended test coverage in `tests/unit/login-route.test.ts` to assert that malformed origins are strictly met with `403 FORBIDDEN`.
+
+### Current Security Profile
+- Passwords stored securely (Argon2id).
+- Tokens stored uniquely as SHA-256 hashes.
+- Session Tokens distributed securely via `__Host-` prefixed `HttpOnly` cookies.
+- Enumeration timing attacks mitigated.
+- Strong automated Vitest coverage proving endpoint behaviors.
+- Successful `npm run build` with `0` ESLint errors.

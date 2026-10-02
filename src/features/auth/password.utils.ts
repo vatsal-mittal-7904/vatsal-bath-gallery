@@ -2,7 +2,7 @@ import * as argon2 from 'argon2';
 
 // Standard secure Argon2id configuration
 const ARGON_CONFIG = {
-  type: argon2.argon2id,
+  type: argon2.argon2id as 2,
   memoryCost: 65536, // 64 MB
   timeCost: 3,       // 3 iterations
   parallelism: 4,    // 4 threads
@@ -18,4 +18,11 @@ export async function verifyPassword(hash: string, password: string): Promise<bo
   } catch (error) {
     return false;
   }
+}
+
+export async function verifyDummyPassword(password: string): Promise<boolean> {
+  try {
+    await argon2.hash(password, ARGON_CONFIG);
+  } catch {}
+  return false;
 }

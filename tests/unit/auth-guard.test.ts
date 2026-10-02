@@ -51,10 +51,7 @@ describe('Auth Guard', () => {
 
     it('returns SafeUser if session is valid', async () => {
       vi.mocked(cookieUtils.getSessionCookie).mockResolvedValueOnce('valid-token');
-      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({
-        session: {} as unknown as import('@prisma/client').Session,
-        user: mockStaff,
-      });
+      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({ session: {} as any, user: mockStaff } as any);
 
       const user = await getAuthenticatedUser();
       expect(user).not.toBeNull();
@@ -71,10 +68,7 @@ describe('Auth Guard', () => {
 
     it('returns SafeUser if authenticated', async () => {
       vi.mocked(cookieUtils.getSessionCookie).mockResolvedValueOnce('valid-token');
-      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({
-        session: {} as unknown as import('@prisma/client').Session,
-        user: mockStaff,
-      });
+      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({ session: {} as any, user: mockStaff } as any);
       const user = await requireAuthenticatedUser();
       expect(user).not.toBeNull();
       expect(user.id).toBe('user-123');
@@ -84,10 +78,7 @@ describe('Auth Guard', () => {
   describe('requirePermission', () => {
     it('allows OWNER to pass OWNER-only check', async () => {
       vi.mocked(cookieUtils.getSessionCookie).mockResolvedValueOnce('valid-token');
-      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({
-        session: {} as unknown as import('@prisma/client').Session,
-        user: mockOwner,
-      });
+      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({ session: {} as any, user: mockOwner } as any);
 
       const user = await requirePermission('users:role:update');
       expect(user.role).toBe(Role.OWNER);
@@ -95,10 +86,7 @@ describe('Auth Guard', () => {
 
     it('denies STAFF from OWNER-only check and throws 403', async () => {
       vi.mocked(cookieUtils.getSessionCookie).mockResolvedValueOnce('valid-token');
-      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({
-        session: {} as unknown as import('@prisma/client').Session,
-        user: mockStaff,
-      });
+      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({ session: {} as any, user: mockStaff } as any);
 
       await expect(requirePermission('users:role:update')).rejects.toThrow('Forbidden: Insufficient permissions');
     });

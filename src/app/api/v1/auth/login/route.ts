@@ -3,7 +3,7 @@ import { withApiWrapper, successResponse } from '@/lib/api-wrapper';
 import { loginSchema } from '@/features/auth/auth.validation';
 import { checkLoginRateLimit } from '@/features/auth/rate-limit';
 import { prisma } from '@/lib/db/client';
-import { verifyPassword } from '@/features/auth/password.utils';
+import { verifyPassword, verifyDummyPassword } from '@/features/auth/password.utils';
 import { generateSessionToken, createSession } from '@/features/auth/session.service';
 import { setSessionCookie } from '@/features/auth/cookie.utils';
 import { toSafeUser } from '@/features/users/user.utils';
@@ -19,7 +19,7 @@ async function loginHandler(req: NextRequest) {
 
   // Rate Limiting by IP (fallback to a default string if undefined)
   // In Next.js App Router, req.ip is often available depending on deployment
-  const ip = req.ip || req.headers.get('x-forwarded-for') || 'unknown';
+  const ip = (req as any).ip || req.headers.get('x-forwarded-for') || 'unknown';
   checkLoginRateLimit(ip);
 
   const body = await req.json();
@@ -35,19 +35,15 @@ async function loginHandler(req: NextRequest) {
     where: { email },
   });
 
-  // Generic rejection if user doesn't exist
-  if (!user) {
-    throw new AppError('Invalid email or password', 401, 'UNAUTHORIZED');
+  // Verify password or perform dummy hash to prevent timing attacks
+  let isValid = false;
+  if (!user || !user.isActive) {
+    await verifyDummyPassword(password);
+  } else {
+    isValid = await verifyPassword(user.passwordHash, password);
   }
 
-  // Check active status
-  if (!user.isActive) {
-    throw new AppError('Invalid email or password', 401, 'UNAUTHORIZED');
-  }
-
-  // Verify password
-  const isValid = await verifyPassword(user.passwordHash, password);
-  if (!isValid) {
+  if (!isValid || !user || !user.isActive) {
     throw new AppError('Invalid email or password', 401, 'UNAUTHORIZED');
   }
 
