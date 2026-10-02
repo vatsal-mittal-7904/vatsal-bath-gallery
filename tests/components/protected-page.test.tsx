@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import Home from '../../src/app/page';
+import Home from '../../src/app/(protected)/page';
 import * as apiClient from '../../src/lib/api-client';
 
 vi.mock('../../src/lib/api-client', () => ({

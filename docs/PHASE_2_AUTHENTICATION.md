@@ -72,3 +72,23 @@ User constraints (such as email uniqueness) and SafeUser serialization logic are
 
 ### Testing
 Fully covered with integration/unit tests for Argon2, Rate-Limiting, and Session creation/validation/revocation inside `tests/integration/auth.test.ts` and `tests/unit/password.test.ts`.
+
+## Subphase 2.3: Session Validation and Protected Routes
+
+### Session Validation Design
+- **Centralized Guard**: A reusable `auth.guard.ts` service implements `getAuthenticatedUser()` (returns `SafeUser` or `null`) and `requireAuthenticatedUser()` (throws an `AppError(401)`).
+- **Session Resolution**: Safely fetches the cookie via the `cookie.utils.ts` established in 2.2 and delegates deep hashing/lookup to `session.service.ts`.
+- **Database Safety**: Validation handles database failures by letting them bubble up as `500 Server Error`, whereas logic violations (expired, inactive user, missing token) resolve as unauthenticated (`401`).
+
+### Frontend Route Protection Strategy
+- **Public vs Protected Segments**: The Next.js routing architecture has been refactored utilizing Route Groups (`(protected)` and `(public)`).
+- **Server Component Layouts**: `src/app/(protected)/layout.tsx` is implemented. It calls `getAuthenticatedUser()` purely server-side.
+- **Redirects**: Unauthenticated accesses to protected routes redirect directly to `/login`.
+- **Caching Mitigations**: Next.js automatically treats server components reading `cookies()` as dynamically rendered routes. This inherently prevents Static Site Generation (SSG) from baking protected HTML or caching private user context publicly.
+
+### Protected API Endpoints
+- **API Guarding**: Any future internal business APIs must utilize `const user = await requireAuthenticatedUser();` at the beginning of the Route Handler. 
+- **Refactored Current Status**: The existing `GET /api/v1/auth/me` endpoint was refactored to employ this newly established guard, proving out the pattern.
+
+### Middleware Decisions
+- **No Heavy Auth in Proxy/Middleware**: We avoided performing Prisma database token-lookups inside the generic `src/proxy.ts` (Next.js middleware). Validating sessions at the Route-Handler and Server-Component levels is more reliable in serverless environments, avoids Edge Runtime incompatibility with Prisma's socket connections, and ensures the authoritative source handles redirection and `401` gracefully.
