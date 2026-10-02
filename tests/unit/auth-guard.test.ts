@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getAuthenticatedUser, requireAuthenticatedUser } from '../../src/features/auth/auth.guard';
+import { getAuthenticatedUser, requireAuthenticatedUser, requirePermission, hasRequiredPermission } from '../../src/features/auth/auth.guard';
 import * as cookieUtils from '../../src/features/auth/cookie.utils';
 import * as sessionService from '../../src/features/auth/session.service';
 import { Role } from '@prisma/client';
@@ -17,7 +17,7 @@ describe('Auth Guard', () => {
     vi.clearAllMocks();
   });
 
-  const mockUser = {
+  const mockStaff = {
     id: 'user-123',
     email: 'test@example.com',
     name: 'Test',
@@ -27,6 +27,12 @@ describe('Auth Guard', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     lastLoginAt: new Date(),
+  };
+
+  const mockOwner = {
+    ...mockStaff,
+    id: 'user-456',
+    role: Role.OWNER,
   };
 
   describe('getAuthenticatedUser', () => {
@@ -47,7 +53,7 @@ describe('Auth Guard', () => {
       vi.mocked(cookieUtils.getSessionCookie).mockResolvedValueOnce('valid-token');
       vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({
         session: {} as unknown as import('@prisma/client').Session,
-        user: mockUser,
+        user: mockStaff,
       });
 
       const user = await getAuthenticatedUser();
@@ -67,11 +73,42 @@ describe('Auth Guard', () => {
       vi.mocked(cookieUtils.getSessionCookie).mockResolvedValueOnce('valid-token');
       vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({
         session: {} as unknown as import('@prisma/client').Session,
-        user: mockUser,
+        user: mockStaff,
       });
       const user = await requireAuthenticatedUser();
       expect(user).not.toBeNull();
       expect(user.id).toBe('user-123');
+    });
+  });
+
+  describe('requirePermission', () => {
+    it('allows OWNER to pass OWNER-only check', async () => {
+      vi.mocked(cookieUtils.getSessionCookie).mockResolvedValueOnce('valid-token');
+      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({
+        session: {} as unknown as import('@prisma/client').Session,
+        user: mockOwner,
+      });
+
+      const user = await requirePermission('users:role:update');
+      expect(user.role).toBe(Role.OWNER);
+    });
+
+    it('denies STAFF from OWNER-only check and throws 403', async () => {
+      vi.mocked(cookieUtils.getSessionCookie).mockResolvedValueOnce('valid-token');
+      vi.mocked(sessionService.validateSessionToken).mockResolvedValueOnce({
+        session: {} as unknown as import('@prisma/client').Session,
+        user: mockStaff,
+      });
+
+      await expect(requirePermission('users:role:update')).rejects.toThrow('Forbidden: Insufficient permissions');
+    });
+  });
+
+  describe('hasRequiredPermission', () => {
+    it('returns boolean without throwing', () => {
+      expect(hasRequiredPermission(null, 'dashboard:read')).toBe(false);
+      expect(hasRequiredPermission(mockStaff as unknown as import('../../src/features/users/user.types').SafeUser, 'users:role:update')).toBe(false);
+      expect(hasRequiredPermission(mockOwner as unknown as import('../../src/features/users/user.types').SafeUser, 'users:role:update')).toBe(true);
     });
   });
 });

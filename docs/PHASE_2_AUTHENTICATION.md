@@ -92,3 +92,31 @@ Fully covered with integration/unit tests for Argon2, Rate-Limiting, and Session
 
 ### Middleware Decisions
 - **No Heavy Auth in Proxy/Middleware**: We avoided performing Prisma database token-lookups inside the generic `src/proxy.ts` (Next.js middleware). Validating sessions at the Route-Handler and Server-Component levels is more reliable in serverless environments, avoids Edge Runtime incompatibility with Prisma's socket connections, and ensures the authoritative source handles redirection and `401` gracefully.
+
+## Subphase 2.4: Role-Based Access Control (RBAC)
+
+### Role Definitions
+- **OWNER**: Full access to all modules, settings, and sensitive financial reports (e.g., margins, wholesale purchase costs, audit logs).
+- **STAFF**: Granted targeted access to operational functionalities (e.g., creating estimates and viewing the catalog), but inherently blocked from viewing restricted business metrics.
+
+### Permission Registry
+We adopted a strictly closed, explicit string-based permission matrix (`permissions.ts`) over scattering `if (user.role === 'OWNER')` statements. 
+Examples of permissions include: `dashboard:read`, `inventory:manage`, `reports:profit:read`.
+- **Fails Closed**: An undefined role or a missing permission identifier results in denied access. 
+- **No Wildcards**: Roles are explicitly mapped to an exhaustive array of their permitted actions, ensuring new roles or modules must be consciously whitelisted.
+
+### Authorization Guard
+- **API and Server Components**: Handlers invoke `const user = await requirePermission('target:action')`. This performs:
+  1. Deep DB session validation (`requireAuthenticatedUser()`).
+  2. Role evaluation against the internal registry.
+  3. Throws a generic `AppError('Forbidden: Insufficient permissions', 403, 'FORBIDDEN')` which bubbles securely to the client.
+- **Frontend Conditionals**: A non-throwing utility (`hasRequiredPermission`) is exported for conditionally masking UI components, though it does not replace the mandatory backend checks.
+
+### Owner-Only Financial Data Protection
+Financial restriction logic is heavily baked into the registry. By granting `reports:profit:read` exclusively to the `OWNER` array, `STAFF` requests to future analytics endpoints will be securely halted before database extraction occurs.
+
+### Session Consistency
+Because `requirePermission` utilizes `requireAuthenticatedUser`, it reads the role embedded deeply in the `User` object resulting from a live session query. Therefore, if an administrator promotes a `STAFF` account to `OWNER` via the database, their next request instantly receives elevated permissions without needing a fresh token.
+
+### Auditing & Logging
+Unauthorized requests are trapped and forwarded to the central Pino logger (e.g. `logger.warn({ userId, role, requiredPermission })`) prior to throwing a `403`. 

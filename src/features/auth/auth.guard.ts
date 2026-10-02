@@ -3,6 +3,8 @@ import { validateSessionToken } from './session.service';
 import { toSafeUser } from '../users/user.utils';
 import { AppError } from '@/lib/errors';
 import { SafeUser } from '../users/user.types';
+import { Permission, hasPermission } from './permissions';
+import { logger } from '@/lib/logger';
 
 /**
  * Validates the current session from the request cookie.
@@ -36,5 +38,29 @@ export async function requireAuthenticatedUser(): Promise<SafeUser> {
   if (!user) {
     throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
   }
+  return user;
+}
+
+/**
+ * Checks if a user has a required permission. 
+ * Does not throw, useful for conditional UI rendering.
+ */
+export function hasRequiredPermission(user: SafeUser | null, permission: Permission): boolean {
+  if (!user) return false;
+  return hasPermission(user.role, permission);
+}
+
+/**
+ * Reusable authorization guard for API Route Handlers and Server Actions.
+ * Throws a 401 if unauthenticated, and a 403 if unauthorized.
+ */
+export async function requirePermission(permission: Permission): Promise<SafeUser> {
+  const user = await requireAuthenticatedUser();
+  
+  if (!hasPermission(user.role, permission)) {
+    logger.warn({ userId: user.id, role: user.role, requiredPermission: permission }, 'Authorization denied');
+    throw new AppError('Forbidden: Insufficient permissions', 403, 'FORBIDDEN');
+  }
+  
   return user;
 }
