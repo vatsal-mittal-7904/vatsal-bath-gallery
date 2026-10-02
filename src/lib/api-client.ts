@@ -16,8 +16,21 @@ export interface ApiResponse<T> {
   requestId: string;
 }
 
+export class ApiFetchError extends Error {
+  status: number;
+  code: string;
+
+  constructor(message: string, status: number, code: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.name = 'ApiFetchError';
+  }
+}
+
 export async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api/v1${endpoint}`, {
+    credentials: 'same-origin',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -28,7 +41,11 @@ export async function fetchApi<T>(endpoint: string, options?: RequestInit): Prom
   const json = (await response.json()) as ApiResponse<T>;
 
   if (!response.ok || !json.success) {
-    throw new Error(json.error?.message || 'An unknown error occurred');
+    throw new ApiFetchError(
+      json.error?.message || 'An unknown error occurred',
+      response.status,
+      json.error?.code || 'UNKNOWN'
+    );
   }
 
   return json.data as T;

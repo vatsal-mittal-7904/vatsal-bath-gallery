@@ -120,3 +120,23 @@ Because `requirePermission` utilizes `requireAuthenticatedUser`, it reads the ro
 
 ### Auditing & Logging
 Unauthorized requests are trapped and forwarded to the central Pino logger (e.g. `logger.warn({ userId, role, requiredPermission })`) prior to throwing a `403`. 
+
+## Subphase 2.5: Frontend Authentication UI and State Management
+
+### Authentication Provider (Context)
+- Created `AuthProvider.tsx` in `src/components/auth/` wrapping the root `src/app/layout.tsx`.
+- Exposes `user`, `state` ('loading' | 'authenticated' | 'unauthenticated' | 'error'), `refreshUser()`, and `logout()`.
+- Initializes session aggressively via `GET /api/v1/auth/me`. 
+- State relies purely on the server responses. The `fetchApi` client enforces `credentials: 'same-origin'` to transit HTTP-only tokens.
+
+### Login Form & UX
+- Lives at `src/app/(public)/login/page.tsx`.
+- Takes `email` and `password` and posts to `/api/v1/auth/login`.
+- Prevents submission duplicates (loading state), handles specific HTTP error codes (e.g. `401` = invalid credentials, `429` = rate limited, etc).
+- **Post-Login Routing:** Safely evaluates the `?next=` parameter. Restricts arbitrary protocol-relative URLs (`//example.com`) or absolute URLs (`http://`) to heavily guard against Open Redirect exploits.
+
+### Dashboard & Layout Adjustments
+- `DashboardClient.tsx` consumes the `useAuth()` hook to conditionally display current user roles, emails, and role-based operational modules.
+- Hides/displays internal quick action buttons (like "Profit Reports" and "Manage Users") purely on frontend `hasPermission` evaluations.
+- Server validation in `(protected)/layout.tsx` guarantees that circumventing these client-side conditional render blocks still results in a server `403` boundary.
+- **Logout:** Dispatches a `POST /api/v1/auth/logout`. Afterwards, physically flushes Next.js route memory by hard navigating `window.location.href = '/login'`.
