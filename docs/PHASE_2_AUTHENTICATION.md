@@ -44,3 +44,31 @@ User constraints (such as email uniqueness) and SafeUser serialization logic are
 
 ### Unresolved Security Decisions
 - Should STAFF members have multiple sub-roles? Currently, STAFF is treated as a monolithic role. We will need to decide if we need `CASHIER` vs `INVENTORY_MANAGER` distinct roles as the shop modules expand.
+
+## Subphase 2.2: Secure Login and Logout
+
+### Session Strategy
+- **Stateful Sessions**: Opaque session tokens (32 bytes = 256 bits of entropy) are generated server-side.
+- **Storage**: The raw token is stored in the browser as an `HttpOnly` cookie. The database (`Session` model) stores an SHA-256 hash of the token. This ensures that even if the database is exposed, active sessions cannot be hijacked because the raw tokens are unrecoverable.
+- **Lifecycle**: Sessions expire in 7 days. Enforced server-side.
+
+### Password Security
+- **Algorithm**: `Argon2id` via the `argon2` Node package.
+- **Verification**: Strict failure checks using generic error messages (`401 Unauthorized`) so attackers cannot determine if an email is registered or a password is correct based on distinct error outputs.
+
+### Cookie Configuration
+- Cookies are locked down with `HttpOnly`, `SameSite: Lax`, and `Path: /`.
+- In production (`NODE_ENV=production`), cookies are additionally flagged as `Secure` and rely on the `__Host-` prefix for strict origin binding.
+
+### API Endpoints
+1. `POST /api/v1/auth/login`: Accepts `{ email, password }`. Generates session.
+2. `POST /api/v1/auth/logout`: Revokes database session and clears cookie.
+3. `GET /api/v1/auth/me`: Validates session cookie, returns current `SafeUser`.
+
+### Security Protections
+- **First-Run OWNER Setup**: The first OWNER is generated safely using the CLI script `npm run setup:owner`. It runs a transaction that locks table insertion, guaranteeing only one initial OWNER is ever generated without committing passwords.
+- **Rate Limiting**: An in-memory IP-based rate limiter restricts logins (5 attempts per 5 minutes by default).
+- **CSRF Defense**: Along with `SameSite: Lax`, endpoints strictly reject cross-origin state changes by enforcing the `Origin` header matches `APP_BASE_URL`.
+
+### Testing
+Fully covered with integration/unit tests for Argon2, Rate-Limiting, and Session creation/validation/revocation inside `tests/integration/auth.test.ts` and `tests/unit/password.test.ts`.

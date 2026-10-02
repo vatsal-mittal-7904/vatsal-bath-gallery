@@ -6,6 +6,6 @@ import { SafeUser } from './user.types';
  * before returning it to the frontend or logging it.
  */
 export function toSafeUser(user: User): SafeUser {
-  const { passwordHash, ...safeUser } = user;
+  const { passwordHash: _passwordHash, ...safeUser } = user;
   return safeUser;
 }
