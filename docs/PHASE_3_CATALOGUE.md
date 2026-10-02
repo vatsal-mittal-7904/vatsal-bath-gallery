@@ -129,3 +129,31 @@ The `CatalogueService` dictates domain integrity securely:
 ### 7. Tests Executed
 - Passed `tests/integration/catalogue-api.test.ts` to verify full creation cycle, constraint validations, and archiving behavior across products and variants.
 - Verified successful integration builds ensuring TypeScript validation correctly excluded `costPrice` from return types.
+
+## Subphase 3.3: Catalogue Management UI
+
+This subphase implemented the user interfaces to consume the backend APIs built in Subphase 3.2.
+
+### 1. Implemented UI Routes
+The following protected pages were added:
+- `/catalogue`: A Dashboard-style overview displaying aggregated active counts of categories, brands, and products.
+- `/catalogue/categories`: Hierarchical-aware list rendering and full creation/editing/archiving forms.
+- `/catalogue/brands`: Standard CRUD views for Brands.
+- `/catalogue/products`: Filterable list of products with quick-access buttons to "Manage" them. 
+- `/catalogue/products/[id]`: A robust detail page incorporating product metadata alongside an inline variant management system, avoiding deep page nesting.
+
+### 2. Authorization and Authentication
+- `CatalogueLayout` strictly verifies `requirePermission('catalogue:read')` on the server before rendering any catalogue modules.
+- Client-side elements (like "Add Brand" buttons) evaluate `hasPermission(user.role, 'catalogue:create')` to toggle viewability natively. 
+- Role-based toggling operates as UI convenience, while backend endpoints inherently enforce security boundaries.
+
+### 3. Service Interactions and UX
+- **No Direct Database Access:** Leveraged `fetchApi()` entirely, adhering to the standard Next.js SPA mutation cycle.
+- **Forms and Input:** Implemented loading spinners, toggle checkboxes, optional selects, native HTML5 validation, and defensive submittions blocking double-clicks.
+- **Cost Price Strictness:** Financial constraints were strictly enforced visually. `costPrice` is absent entirely from all pages and variables within `SafeProductVariant`.
+- **Refinement:** Added intuitive back buttons and clearly demarcated sections to reduce cognitive load managing complicated SKUs.
+
+### 4. Automated Tests
+- Bootstrapped `tests/unit/catalogue-ui.test.tsx` utilizing `@testing-library/react` coupled with `jsdom` to assert that complex React Hooks and dynamic API fetches reliably mount into DOM structures.
+
+All tests passed, and the production build successfully generated optimized static footprints where applicable.

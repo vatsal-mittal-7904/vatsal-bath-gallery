@@ -64,9 +64,14 @@ export default function DashboardClient({ user }: { user: SafeUser }) {
         <Card className="w-full max-w-2xl p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="secondary" className="w-full h-24 flex flex-col gap-2">
-              <span>📦</span> Catalogue
-            </Button>
+            
+            {hasPermission(user.role, 'catalogue:read') && (
+              <a href="/catalogue" className="w-full">
+                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
+                  <span>📦</span> Catalogue
+                </Button>
+              </a>
+            )}
             <Button variant="secondary" className="w-full h-24 flex flex-col gap-2">
               <span>📄</span> Estimates
             </Button>
