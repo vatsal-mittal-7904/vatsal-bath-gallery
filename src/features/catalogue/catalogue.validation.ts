@@ -14,7 +14,7 @@ export const brandSchema = z.object({
 export const productVariantSchema = z.object({
   sku: z.string().min(1, 'SKU is required').max(100),
   barcode: z.string().max(100).optional().nullable(),
-  attributes: z.record(z.string()).default({}),
+  attributes: z.record(z.string(), z.any()).default({}),
   sellingPrice: z.number().min(0, 'Selling price cannot be negative'),
   costPrice: z.number().min(0, 'Cost price cannot be negative').optional().nullable(),
   isActive: z.boolean().default(true),
@@ -27,4 +27,29 @@ export const productSchema = z.object({
   brandId: z.string().uuid('Invalid brand ID').optional().nullable(),
   isActive: z.boolean().default(true),
   variants: z.array(productVariantSchema).optional(),
+});
+
+// Update schemas
+export const updateCategorySchema = categorySchema.partial();
+export const updateBrandSchema = brandSchema.partial();
+export const updateProductVariantSchema = productVariantSchema.partial();
+export const updateProductSchema = productSchema.partial();
+
+// Pagination and filtering schemas
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const productFilterSchema = paginationSchema.extend({
+  search: z.string().optional(),
+  categoryId: z.string().uuid().optional(),
+  brandId: z.string().uuid().optional(),
+  isActive: z.coerce.boolean().optional(),
+});
+
+export const categoryFilterSchema = paginationSchema.extend({
+  search: z.string().optional(),
+  parentId: z.string().uuid().optional().nullable(),
+  isActive: z.coerce.boolean().optional(),
 });

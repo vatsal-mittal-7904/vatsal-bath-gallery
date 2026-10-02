@@ -91,3 +91,41 @@ The `tests/integration/catalogue-model.test.ts` file covers:
 ### 10. Known Limitations and Deferred Decisions
 - Cycle detection for category nesting remains deferred to the API layer implementation (Subphase 3.2).
 - Cost pricing exists but is completely isolated; costing visibility and calculations are deferred to dedicated accounting/costing subphases.
+
+## Subphase 3.2: Catalogue API and Service Layer
+
+This subphase implemented the authoritative service layer and secure endpoints for the Catalogue domain.
+
+### 1. Implemented Endpoints
+The following REST-style endpoints were added under `/api/v1/catalogue`:
+- **Categories**: `GET|POST /categories`, `GET|PATCH /categories/[id]`, `POST /categories/[id]/archive`
+- **Brands**: `GET|POST /brands`, `GET|PATCH /brands/[id]`, `POST /brands/[id]/archive`
+- **Products**: `GET|POST /products`, `GET|PATCH /products/[id]`, `POST /products/[id]/archive`
+- **Variants**: `GET|POST /products/[id]/variants`, `GET|PATCH /variants/[id]`, `POST /variants/[id]/archive`
+
+### 2. Authorization and Authentication
+- All endpoints strictly call `requirePermission()` matching the business rule actions (`catalogue:read`, `catalogue:create`, `catalogue:update`, `catalogue:archive`).
+- Because of Phase 2 logic, unauthenticated or unauthorized roles automatically receive standard `401` or `403` responses.
+
+### 3. Service Layer and Validation Rules
+The `CatalogueService` dictates domain integrity securely:
+- **Category Hierarchy**: Validates that a category cannot be its own parent. Walks up the ancestry tree to prevent assigning a descendant as a parent (preventing cycles). Enforces limits on depth (max 20).
+- **Constraints**: Propagates `P2002` (Unique Constraint Violations) into `AppError` `409 CONFLICT` correctly, maintaining database-authoritative integrity for brand names and SKUs.
+- **Transactions**: Multi-table insertions (e.g. `createProduct` with initial variants) are encapsulated in atomic `prisma.$transaction`.
+
+### 4. Archival Behavior
+- Hard deletions (`delete`) are prohibited.
+- Endpoints trigger `archive()` which sets `isActive: false`.
+- Referential invariants checked before archiving: A category cannot be archived if it still possesses active child categories or active products. Archiving a product effectively cascades archival to all active variants attached to it.
+
+### 5. Filtering, Sorting, and Pagination
+- Implemented bounded list filters utilizing Zod's `paginationSchema` across lists.
+- Deterministic sorts (`orderBy`) explicitly applied at the database level to prevent unbounded fetches and arbitrary query executions.
+
+### 6. Confidentiality
+- Reused `SafeProductVariant` masking to completely ensure `costPrice` never leaks in the API JSON responses, including nested requests. 
+- Casted Prisma `Decimal` explicitly to numbers at the service-exit boundary to prevent unwanted precision conversion mutations by external clients.
+
+### 7. Tests Executed
+- Passed `tests/integration/catalogue-api.test.ts` to verify full creation cycle, constraint validations, and archiving behavior across products and variants.
+- Verified successful integration builds ensuring TypeScript validation correctly excluded `costPrice` from return types.

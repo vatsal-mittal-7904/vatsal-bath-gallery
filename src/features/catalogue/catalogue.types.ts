@@ -5,7 +5,7 @@ export type SafeCategory = Omit<Category, 'createdAt' | 'updatedAt'>;
 export type SafeBrand = Omit<Brand, 'createdAt' | 'updatedAt'>;
 
 // Safe variant explicitly EXCLUDES costPrice
-export type SafeProductVariant = Omit<ProductVariant, 'costPrice' | 'createdAt' | 'updatedAt'> & {
+export type SafeProductVariant = Omit<ProductVariant, 'costPrice' | 'createdAt' | 'updatedAt' | 'sellingPrice'> & {
   sellingPrice: number; // Convert Decimal to number for API serialization
 };
 
