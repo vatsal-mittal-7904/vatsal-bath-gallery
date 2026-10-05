@@ -4,33 +4,28 @@ import { Role } from '@prisma/client';
 import { hashPassword } from '../../src/features/auth/password.utils';
 import { generateSessionToken, createSession, validateSessionToken, revokeSession, hashSessionToken } from '../../src/features/auth/session.service';
 
-const isTestDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('testdb');
 
 describe('Auth & Session Integration', () => {
   const testEmail = 'auth-test@example.com';
   let userId = '';
 
   beforeAll(async () => {
-    if (!isTestDb) {
-      await prisma.user.deleteMany({ where: { email: testEmail } });
-      const user = await prisma.user.create({
-        data: {
-          email: testEmail,
-          passwordHash: await hashPassword('password123'),
-          role: Role.STAFF,
-        },
-      });
-      userId = user.id;
-    }
+    await prisma.user.deleteMany({ where: { email: testEmail } });
+    const user = await prisma.user.create({
+      data: {
+        email: testEmail,
+        passwordHash: await hashPassword('password123'),
+        role: Role.STAFF,
+      },
+    });
+    userId = user.id;
   });
 
   afterAll(async () => {
-    if (!isTestDb) {
-      await prisma.user.deleteMany({ where: { email: testEmail } });
-    }
+    await prisma.user.deleteMany({ where: { email: testEmail } });
   });
 
-  it.skipIf(isTestDb)('creates, validates, and revokes a session securely', async () => {
+  it('creates, validates, and revokes a session securely', async () => {
     const rawToken = generateSessionToken();
     
     // 1. Create

@@ -1,34 +1,50 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '../../src/lib/db/client';
 
-const isTestDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('testdb');
-
 describe('Inventory Database Models', () => {
+  const cleanup = async () => {
+    const locCodes = ['WH-01', 'SH-01', 'WH-A', 'WH-B'];
+    const skus = ['PVC-001'];
+    await prisma.stockMovement.deleteMany({
+      where: {
+        OR: [
+          { variant: { sku: { in: skus } } },
+          { location: { code: { in: locCodes } } }
+        ]
+      }
+    });
+    await prisma.stockTransfer.deleteMany({
+      where: {
+        OR: [
+          { source: { code: { in: locCodes } } },
+          { destination: { code: { in: locCodes } } },
+          { reference: 'TR-100' }
+        ]
+      }
+    });
+    await prisma.inventoryBalance.deleteMany({
+      where: {
+        OR: [
+          { variant: { sku: { in: skus } } },
+          { location: { code: { in: locCodes } } }
+        ]
+      }
+    });
+    await prisma.inventoryLocation.deleteMany({ where: { code: { in: locCodes } } });
+    await prisma.productVariant.deleteMany({ where: { sku: { in: skus } } });
+    await prisma.product.deleteMany({ where: { name: 'PVC Pipe' } });
+    await prisma.category.deleteMany({ where: { name: 'Pipes' } });
+  };
+
   beforeAll(async () => {
-    if (!isTestDb) {
-      await prisma.stockMovement.deleteMany();
-      await prisma.stockTransfer.deleteMany();
-      await prisma.inventoryBalance.deleteMany();
-      await prisma.inventoryLocation.deleteMany();
-      await prisma.productVariant.deleteMany();
-      await prisma.product.deleteMany();
-      await prisma.category.deleteMany();
-    }
+    await cleanup();
   });
 
   afterAll(async () => {
-    if (!isTestDb) {
-      await prisma.stockMovement.deleteMany();
-      await prisma.stockTransfer.deleteMany();
-      await prisma.inventoryBalance.deleteMany();
-      await prisma.inventoryLocation.deleteMany();
-      await prisma.productVariant.deleteMany();
-      await prisma.product.deleteMany();
-      await prisma.category.deleteMany();
-    }
+    await cleanup();
   });
 
-  it.skipIf(isTestDb)('can create inventory location and enforce unique code', async () => {
+  it('can create inventory location and enforce unique code', async () => {
     const loc1 = await prisma.inventoryLocation.create({
       data: { code: 'WH-01', name: 'Main Warehouse' }
     });
@@ -36,10 +52,10 @@ describe('Inventory Database Models', () => {
 
     await expect(prisma.inventoryLocation.create({
       data: { code: 'WH-01', name: 'Duplicate Code' }
-    })).rejects.toThrow(/Unique constraint failed on the fields: \\(\`code\`\\)/);
+    })).rejects.toThrow(/Unique constraint failed.*code/);
   });
 
-  it.skipIf(isTestDb)('enforces unique balance per variant per location', async () => {
+  it('enforces unique balance per variant per location', async () => {
     const category = await prisma.category.create({ data: { name: 'Pipes' }});
     const product = await prisma.product.create({ data: { name: 'PVC Pipe', categoryId: category.id }});
     const variant = await prisma.productVariant.create({
@@ -90,10 +106,10 @@ describe('Inventory Database Models', () => {
     // Restrict deletion check: Try deleting variant, should fail because balance & movement depend on it
     await expect(prisma.productVariant.delete({
       where: { id: variant.id }
-    })).rejects.toThrow(/Foreign key constraint failed/);
+    })).rejects.toThrow(/Foreign key constraint (failed|violated)/);
   });
 
-  it.skipIf(isTestDb)('can support transfers between locations', async () => {
+  it('can support transfers between locations', async () => {
     const locA = await prisma.inventoryLocation.create({ data: { code: 'WH-A', name: 'Warehouse A' }});
     const locB = await prisma.inventoryLocation.create({ data: { code: 'WH-B', name: 'Warehouse B' }});
 

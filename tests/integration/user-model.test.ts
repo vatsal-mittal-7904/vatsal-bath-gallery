@@ -6,22 +6,16 @@ import { Role } from '@prisma/client';
 describe('User Model Integration', () => {
   const testEmail = 'test-user-model@example.com';
 
-  const isTestDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('testdb');
-
-  // Clean up before and after tests (only if not mocked testdb)
+  // Clean up before and after tests
   beforeAll(async () => {
-    if (!isTestDb) {
-      await prisma.user.deleteMany({ where: { email: testEmail } });
-    }
+    await prisma.user.deleteMany({ where: { email: testEmail } });
   });
 
   afterAll(async () => {
-    if (!isTestDb) {
-      await prisma.user.deleteMany({ where: { email: testEmail } });
-    }
+    await prisma.user.deleteMany({ where: { email: testEmail } });
   });
 
-  it.skipIf(isTestDb)('creates a user with default STAFF role and active status', async () => {
+  it('creates a user with default STAFF role and active status', async () => {
     const user = await prisma.user.create({
       data: {
         email: testEmail,
@@ -37,7 +31,7 @@ describe('User Model Integration', () => {
     expect(user.passwordHash).toBe('dummy-hash');
   });
 
-  it.skipIf(isTestDb)('rejects duplicate email addresses', async () => {
+  it('rejects duplicate email addresses', async () => {
     await expect(
       prisma.user.create({
         data: {

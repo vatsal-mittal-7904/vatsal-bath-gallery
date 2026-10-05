@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Category, Brand, Product, ProductVariant } from '@prisma/client';
 import { SafeCategory, SafeBrand, SafeProduct, SafeProductVariant } from './catalogue.types';
 
@@ -12,16 +12,25 @@ export function toSafeBrand(brand: Brand): SafeBrand {
   return safe;
 }
 
-export function toSafeProductVariant(variant: ProductVariant): SafeProductVariant {
+export interface SafeSerializationOptions {
+  includeCost?: boolean;
+}
+
+export function toSafeProductVariant(variant: ProductVariant, options?: SafeSerializationOptions): SafeProductVariant {
   const { costPrice, createdAt, updatedAt, ...safe } = variant;
-  return {
+  const result: SafeProductVariant = {
     ...safe,
     sellingPrice: Number(safe.sellingPrice),
   };
+  if (options?.includeCost && costPrice !== null && costPrice !== undefined) {
+    result.costPrice = Number(costPrice);
+  }
+  return result;
 }
 
 export function toSafeProduct(
-  product: Product & { category?: Category; brand?: Brand | null; variants?: ProductVariant[] }
+  product: Product & { category?: Category; brand?: Brand | null; variants?: ProductVariant[] },
+  options?: SafeSerializationOptions
 ): SafeProduct {
   const { createdAt, updatedAt, ...safe } = product;
   
@@ -29,6 +38,6 @@ export function toSafeProduct(
     ...safe,
     category: safe.category ? toSafeCategory(safe.category) : undefined,
     brand: safe.brand ? toSafeBrand(safe.brand) : undefined,
-    variants: safe.variants ? safe.variants.map(toSafeProductVariant) : undefined,
+    variants: safe.variants ? safe.variants.map(v => toSafeProductVariant(v, options)) : undefined,
   };
 }

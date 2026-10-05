@@ -1,29 +1,27 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '../../src/lib/db/client';
 
-const isTestDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('testdb');
-
 describe('Catalogue Models & Constraints', () => {
+  const cleanup = async () => {
+    const skus = ['TAP-BRASS-01'];
+    await prisma.inventoryBalance.deleteMany({ where: { variant: { sku: { in: skus } } } });
+    await prisma.stockMovement.deleteMany({ where: { variant: { sku: { in: skus } } } });
+    await prisma.productVariant.deleteMany({ where: { sku: { in: skus } } });
+    await prisma.product.deleteMany({ where: { name: { in: ['Brass Tap', 'PVC Pipe', 'Unbranded Pipe'] } } });
+    await prisma.brand.deleteMany({ where: { name: 'PremiumBrand' } });
+    await prisma.category.deleteMany({ where: { name: 'Wash Basins' } });
+    await prisma.category.deleteMany({ where: { name: { in: ['Sanitaryware', 'Taps', 'Pipes'] } } });
+  };
+
   beforeAll(async () => {
-    if (!isTestDb) {
-      // Clear data for isolation
-      await prisma.productVariant.deleteMany();
-      await prisma.product.deleteMany();
-      await prisma.brand.deleteMany();
-      await prisma.category.deleteMany();
-    }
+    await cleanup();
   });
 
   afterAll(async () => {
-    if (!isTestDb) {
-      await prisma.productVariant.deleteMany();
-      await prisma.product.deleteMany();
-      await prisma.brand.deleteMany();
-      await prisma.category.deleteMany();
-    }
+    await cleanup();
   });
 
-  it.skipIf(isTestDb)('prevents duplicate category names at the same hierarchy level', async () => {
+  it('prevents duplicate category names at the same hierarchy level', async () => {
     const parent = await prisma.category.create({
       data: { name: 'Sanitaryware' },
     });
@@ -40,7 +38,7 @@ describe('Catalogue Models & Constraints', () => {
     ).rejects.toThrow();
   });
 
-  it.skipIf(isTestDb)('prevents duplicate SKUs across variants', async () => {
+  it('prevents duplicate SKUs across variants', async () => {
     const category = await prisma.category.create({
       data: { name: 'Taps' },
     });
@@ -72,7 +70,7 @@ describe('Catalogue Models & Constraints', () => {
     ).rejects.toThrow();
   });
 
-  it.skipIf(isTestDb)('allows optional brands and preserves referential integrity', async () => {
+  it('allows optional brands and preserves referential integrity', async () => {
     const brand = await prisma.brand.create({
       data: { name: 'PremiumBrand' },
     });

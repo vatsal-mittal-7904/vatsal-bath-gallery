@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from '@/lib/db/client';
 import { AppError } from '@/lib/errors';
 import { z } from 'zod';
@@ -185,9 +185,19 @@ export class CatalogueService {
 
   static async listProducts(params: z.infer<typeof productFilterSchema>) {
     const { page, limit, search, categoryId, brandId, isActive } = params;
+    
     const where: Prisma.ProductWhereInput = {};
-    if (search) where.name = { contains: search, mode: 'insensitive' };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { brand: { name: { contains: search, mode: 'insensitive' } } },
+        { category: { name: { contains: search, mode: 'insensitive' } } },
+        { variants: { some: { sku: { contains: search, mode: 'insensitive' } } } },
+        { variants: { some: { attributes: { string_contains: search } } } }
+      ];
+    }
     if (categoryId) where.categoryId = categoryId;
+
     if (brandId) where.brandId = brandId;
     if (isActive !== undefined) where.isActive = isActive;
 
@@ -222,8 +232,8 @@ export class CatalogueService {
 
   static async archiveProduct(id: string) {
     return prisma.$transaction([
-      prisma.productVariant.updateMany({ where: { productId: id, isActive: true }, data: { isActive: false } }),
-      prisma.product.update({ where: { id }, data: { isActive: false } })
+      prisma.product.update({ where: { id }, data: { isActive: false } }),
+      prisma.productVariant.updateMany({ where: { productId: id, isActive: true }, data: { isActive: false } })
     ]);
   }
 

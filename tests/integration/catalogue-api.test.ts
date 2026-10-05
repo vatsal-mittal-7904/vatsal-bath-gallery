@@ -2,28 +2,28 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '../../src/lib/db/client';
 import { CatalogueService } from '../../src/features/catalogue/catalogue.service';
 
-const isTestDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('testdb');
-
 describe('Catalogue Service & API Logic', () => {
+  const skus = ['TEST-SRV-01', 'TEST-SRV-02', 'DUP-SKU-01'];
+
   beforeAll(async () => {
-    if (!isTestDb) {
-      await prisma.productVariant.deleteMany();
-      await prisma.product.deleteMany();
-      await prisma.brand.deleteMany();
-      await prisma.category.deleteMany();
-    }
+    await prisma.inventoryBalance.deleteMany({ where: { variant: { sku: { in: skus } } } });
+    await prisma.stockMovement.deleteMany({ where: { variant: { sku: { in: skus } } } });
+    await prisma.productVariant.deleteMany({ where: { sku: { in: skus } } });
+    await prisma.product.deleteMany({ where: { name: { in: ['Service Test Product', 'SKU Test Product'] } } });
+    await prisma.brand.deleteMany({ where: { name: 'Service Test Brand' } });
+    await prisma.category.deleteMany({ where: { name: { in: ['Service Test Category', 'SKU Test Category'] } } });
   });
 
   afterAll(async () => {
-    if (!isTestDb) {
-      await prisma.productVariant.deleteMany();
-      await prisma.product.deleteMany();
-      await prisma.brand.deleteMany();
-      await prisma.category.deleteMany();
-    }
+    await prisma.inventoryBalance.deleteMany({ where: { variant: { sku: { in: skus } } } });
+    await prisma.stockMovement.deleteMany({ where: { variant: { sku: { in: skus } } } });
+    await prisma.productVariant.deleteMany({ where: { sku: { in: skus } } });
+    await prisma.product.deleteMany({ where: { name: { in: ['Service Test Product', 'SKU Test Product'] } } });
+    await prisma.brand.deleteMany({ where: { name: 'Service Test Brand' } });
+    await prisma.category.deleteMany({ where: { name: { in: ['Service Test Category', 'SKU Test Category'] } } });
   });
 
-  it.skipIf(isTestDb)('can create a category, brand, product, and variant end-to-end', async () => {
+  it('can create a category, brand, product, and variant end-to-end', async () => {
     // 1. Create Category
     const category = await CatalogueService.createCategory({ name: 'Service Test Category', isActive: true });
     expect(category.id).toBeDefined();
@@ -74,7 +74,7 @@ describe('Catalogue Service & API Logic', () => {
     expect(archivedCategory.isActive).toBe(false);
   });
 
-  it.skipIf(isTestDb)('rejects duplicate SKU creation', async () => {
+  it('rejects duplicate SKU creation', async () => {
     const category = await CatalogueService.createCategory({ name: 'SKU Test Category', isActive: true });
     const product = await CatalogueService.createProduct({
       name: 'SKU Test Product',
