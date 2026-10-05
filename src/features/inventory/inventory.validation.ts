@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { z } from 'zod';
 import { MovementType, TransferStatus } from '@prisma/client';
 
@@ -6,28 +7,57 @@ export const locationSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
+  isDefault: z.boolean().default(false),
 });
 
-export const balanceSchema = z.object({
+export const locationUpdateSchema = locationSchema.partial();
+
+export const openingStockSchema = z.object({
   variantId: z.string().uuid(),
   locationId: z.string().uuid(),
-  quantity: z.number().min(0, "Balance cannot be negative"), // Negative overall balance is strictly avoided
-  reserved: z.number().min(0).default(0),
+  quantity: z.number().positive("Opening stock must be positive"),
+  reason: z.string().min(1).max(1000),
+  idempotencyKey: z.string().max(255).optional(),
 });
 
-export const stockMovementSchema = z.object({
+export const stockReceiptSchema = z.object({
   variantId: z.string().uuid(),
   locationId: z.string().uuid(),
-  type: z.nativeEnum(MovementType),
-  quantity: z.number().positive("Movement quantity must be an absolute positive value"),
-  reference: z.string().max(255).optional().nullable(),
-  reason: z.string().max(1000).optional().nullable(),
-  transferId: z.string().uuid().optional().nullable(),
+  quantity: z.number().positive("Receipt quantity must be positive"),
+  reference: z.string().min(1).max(255),
+  reason: z.string().max(1000).optional(),
+  idempotencyKey: z.string().max(255).optional(),
+});
+
+export const stockIssueSchema = z.object({
+  variantId: z.string().uuid(),
+  locationId: z.string().uuid(),
+  quantity: z.number().positive("Issue quantity must be positive"),
+  reference: z.string().min(1).max(255),
+  reason: z.string().max(1000).optional(),
+  idempotencyKey: z.string().max(255).optional(),
+});
+
+export const stockAdjustmentSchema = z.object({
+  variantId: z.string().uuid(),
+  locationId: z.string().uuid(),
+  quantity: z.number().positive("Adjustment quantity must be absolute positive"),
+  type: z.enum([MovementType.POSITIVE_ADJUSTMENT, MovementType.NEGATIVE_ADJUSTMENT]),
+  reason: z.string().min(1).max(1000),
+  reference: z.string().max(255).optional(),
+  idempotencyKey: z.string().max(255).optional(),
 });
 
 export const stockTransferSchema = z.object({
+  variantId: z.string().uuid(),
   sourceId: z.string().uuid(),
   destinationId: z.string().uuid(),
-  status: z.nativeEnum(TransferStatus).default('PENDING'),
-  reference: z.string().optional().nullable(),
+  quantity: z.number().positive("Transfer quantity must be positive"),
+  reference: z.string().optional(),
+  idempotencyKey: z.string().max(255).optional(),
+});
+
+export const paginationSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(50),
 });

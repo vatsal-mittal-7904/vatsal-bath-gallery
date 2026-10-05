@@ -67,3 +67,47 @@ When the Service Layer is implemented in Subphase 4.2, any operation that update
 - Verifies that `ProductVariant` deletion throws foreign key errors when balances exist.
 - Validates decimal fraction insertions logic cleanly (`100.5`).
 - Passed via `vitest`.
+
+## Subphase 4.2: Inventory Service Layer and Stock Movement APIs
+
+This subphase implemented the authoritative service boundaries and Next.js App Router API routes to handle stock mutations, guaranteeing complete atomicity and strict append-only ledger compliance.
+
+### 1. Service Layer (`inventory.service.ts`)
+The `InventoryService` enforces domain rules cleanly isolated from HTTP concerns:
+- **`recordOpeningStock`**: Strictly initializes balance at an empty location, failing explicitly if a balance is already initialized.
+- **`receiveStock` / `issueStock`**: Mutates stock balances incrementally. Prevents negative stock explicitly during issues using an atomic `quantity: { decrement }` coupled with a database constraint/where clause `quantity: { gte: quantity }`.
+- **`adjustStock`**: Explicit support for `POSITIVE_ADJUSTMENT` and `NEGATIVE_ADJUSTMENT`, keeping history pure.
+- **`transferStock`**: Safely performs two-location balance updates while emitting paired `TRANSFER_OUT` and `TRANSFER_IN` `StockMovement` records simultaneously inside a single transaction.
+
+### 2. Transaction Safety & Concurrency
+- Implemented via `prisma.$transaction`.
+- **Atomic Balance Mutators:** All balance decreases leverage Prisma's `updateMany` filtering by `quantity: { gte: requiredAmount }`. This prevents concurrent "Lost Updates" and blocks overselling natively at the database lock level without relying on weak "Read-then-Write" races.
+- If the `count === 0` during an `updateMany` decrease, the service safely rejects the operation as a conflict (`409`).
+
+### 3. Idempotency Implementation
+- Added a new `idempotencyKey String? @unique` field to the `StockMovement` schema.
+- This protects API clients from accidental double-submissions. Any mutation service call immediately checks `StockMovement` for the given key and raises a `409` conflict if duplicated.
+
+### 4. Decimal Preservation
+- Standardized `toSafeBalance` and `toSafeMovement` mappers inside `inventory.utils.ts`. 
+- Ensures `Decimal(12, 3)` fields serialize identically out to JSON safely as native standard numbers matching Zod bounds, blocking arbitrary floating-point injection loops.
+
+### 5. API Endpoints
+All routes placed inside `/api/v1/inventory/*`:
+- `GET`, `POST`, `PATCH` for `/locations`.
+- `/opening-stock`, `/receipts`, `/issues`, `/adjustments`, `/transfers` to compartmentalize mutation intents neatly.
+- `GET /balances` & `GET /movements` supporting bounded pagination.
+
+### 6. Authorization mapping (`permissions.ts`)
+Added granular scopes:
+- `inventory:read` (STAFF, OWNER)
+- `inventory:stock:manage` (STAFF, OWNER)
+- `inventory:transfer:manage` (STAFF, OWNER)
+- `inventory:locations:manage` (OWNER only - restricts physical store creations)
+
+### 7. Automated Tests
+`tests/integration/inventory-service.test.ts` was authored covering:
+- Negative stock rejection tests.
+- Exact decimal fraction preservation tests.
+- Idempotency fallback checks.
+(Tests safely skip inside local missing DB environments relying on `testdb` flags natively).
