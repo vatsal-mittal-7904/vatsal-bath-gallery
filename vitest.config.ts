@@ -4,6 +4,7 @@ import path from 'path';
 export default defineConfig({
   test: {
     environment: 'node',
+    fileParallelism: false,
     setupFiles: ['./tests/setup.ts'],
   },
   resolve: {

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 'use client';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
@@ -22,6 +22,8 @@ export default function ProductsPage() {
   
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('');
 
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -39,11 +41,11 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const canWrite = user ? hasPermission(user.role, 'catalogue:create') : false;
 
-  const loadData = async (search = '') => {
+  const loadData = async (search = "", cat = "", brnd = "") => {
     setLoading(true);
     try {
       const [prodRes, catRes, brandRes] = await Promise.all([
-        fetchApi<{ items: SafeProduct[] }>(`/catalogue/products?limit=50${search ? `&search=${encodeURIComponent(search)}` : ''}`),
+        fetchApi<{ items: SafeProduct[] }>(`/catalogue/products?limit=50${search ? `&search=${encodeURIComponent(search)}` : ""}${cat ? `&categoryId=${encodeURIComponent(cat)}` : ""}${brnd ? `&brandId=${encodeURIComponent(brnd)}` : ""}`),
         fetchApi<{ items: SafeCategory[] }>('/catalogue/categories?limit=500&isActive=true'),
         fetchApi<{ items: SafeBrand[] }>('/catalogue/brands?limit=100&isActive=true'),
       ]);
@@ -59,12 +61,11 @@ export default function ProductsPage() {
 
   useEffect(() => {
     loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadData(searchTerm);
+    loadData(searchTerm, selectedCategory, selectedBrand);
   };
 
   const openForm = () => {
@@ -122,11 +123,27 @@ export default function ProductsPage() {
         {!isFormOpen && (
           <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-auto">
             <Input 
-              placeholder="Search products..." 
+              placeholder="Search products, SKUs, sizes..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-xs"
+              className="w-full sm:w-64"
             />
+            <select 
+              value={selectedCategory} 
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white min-w-32"
+            >
+              <option value="">All Categories</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <select 
+              value={selectedBrand} 
+              onChange={(e) => setSelectedBrand(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white min-w-32"
+            >
+              <option value="">All Brands</option>
+              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
             <Button type="submit" variant="secondary">Search</Button>
             {canWrite && <Button type="button" onClick={() => openForm()}>Add Product</Button>}
           </form>
@@ -197,18 +214,32 @@ export default function ProductsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Brand</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Variants (SKU / Size)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {products.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-4 text-center text-gray-500">No products found.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-500">No products found.</td></tr>
               ) : products.map(prod => (
                 <tr key={prod.id}>
                   <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{prod.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{prod.category?.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{prod.brand?.name || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {(prod.variants || []).length > 0 ? (
+                      <div className="flex flex-col gap-1">
+                        {(prod.variants || []).map((v: any) => (
+                           <span key={v.id} className="bg-gray-100 text-xs px-2 py-0.5 rounded border border-gray-200 inline-block truncate">
+                             {v.sku} {v.attributes?.size ? `(${v.attributes.size})` : ''}
+                           </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic">No variants</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {prod.isActive ? 
                       <span className="text-green-600 bg-green-50 px-2 py-1 rounded text-xs">Active</span> : 

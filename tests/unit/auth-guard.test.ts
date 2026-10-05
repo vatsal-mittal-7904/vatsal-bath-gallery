@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getAuthenticatedUser, requireAuthenticatedUser, requirePermission, hasRequiredPermission } from '../../src/features/auth/auth.guard';
 import * as cookieUtils from '../../src/features/auth/cookie.utils';

@@ -3,6 +3,10 @@ import { Role } from '@prisma/client';
 export type Permission = 
   | 'dashboard:read'
   | 'catalogue:read' | 'catalogue:create' | 'catalogue:update' | 'catalogue:archive'
+  | 'inventory:read'
+  | 'inventory:locations:manage'
+  | 'inventory:stock:manage'
+  | 'inventory:transfer:manage'
   | 'inventory:read' | 'inventory:adjust' | 'inventory:manage'
   | 'customers:read' | 'customers:create' | 'customers:update' | 'customers:delete'
   | 'estimates:read' | 'estimates:create' | 'estimates:update' | 'estimates:delete'
@@ -12,7 +16,8 @@ export type Permission =
   | 'catalogue:cost:read'
   | 'users:read' | 'users:create' | 'users:update' | 'users:deactivate' | 'users:role:update'
   | 'settings:read' | 'settings:update'
-  | 'audit:read';
+  | 'audit:read'
+  | 'parcha:read' | 'parcha:upload';
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   OWNER: [
@@ -27,7 +32,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'catalogue:cost:read',
     'users:read', 'users:create', 'users:update', 'users:deactivate', 'users:role:update',
     'settings:read', 'settings:update',
-    'audit:read'
+    'audit:read',
+    'parcha:read', 'parcha:upload'
   ],
   STAFF: [
     'dashboard:read',
@@ -37,7 +43,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'estimates:read', 'estimates:create', 'estimates:update',
     'invoices:read', 'invoices:create', 'invoices:update',
     'payments:read', 'payments:record',
-    'reports:read' // explicitly lacking profit/margin/cost viewing
+    'reports:read', // explicitly lacking profit/margin/cost viewing
+    'parcha:read', 'parcha:upload'
   ]
 };
 

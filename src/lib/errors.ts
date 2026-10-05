@@ -8,7 +8,7 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
-    Object.setPrototypeOf(this, AppError.prototype);
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
@@ -27,5 +27,24 @@ export class NotFoundError extends AppError {
 export class ConflictError extends AppError {
   constructor(message: string) {
     super(message, 409, 'CONFLICT');
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message: string = 'Forbidden') {
+    super(message, 403, 'FORBIDDEN');
+  }
+}
+
+export class InsufficientStockError extends ConflictError {
+  public readonly variantId?: string;
+  public readonly available?: string;
+  public readonly requested?: string;
+
+  constructor(message: string = 'Insufficient stock available', details?: { variantId?: string; available?: string; requested?: string }) {
+    super(message);
+    this.variantId = details?.variantId;
+    this.available = details?.available;
+    this.requested = details?.requested;
   }
 }

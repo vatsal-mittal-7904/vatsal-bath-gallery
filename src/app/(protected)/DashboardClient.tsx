@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api-client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import Link from 'next/link';
 import { Spinner } from '@/components/ui/Spinner';
 import { SafeUser } from '@/features/users/user.types';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -44,8 +45,37 @@ export default function DashboardClient({ user }: { user: SafeUser }) {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Vatsal Bath Gallery</h1>
+        <div className="flex items-center gap-6">
+          <Link href="/" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
+            Vatsal Bath Gallery
+          </Link>
+          <nav className="hidden md:flex items-center gap-4 text-sm font-medium text-gray-600">
+            {hasPermission(user.role, 'parcha:read') && (
+              <Link href="/parcha" className="hover:text-blue-600 transition-colors flex items-center gap-1.5 font-semibold text-blue-600">
+                <span>📸</span> Parcha OCR
+              </Link>
+            )}
+            {hasPermission(user.role, 'estimates:read') && (
+              <Link href="/estimates" className="hover:text-blue-600 transition-colors">
+                Estimates
+              </Link>
+            )}
+            {hasPermission(user.role, 'invoices:read') && (
+              <Link href="/bills" className="hover:text-blue-600 transition-colors">
+                Bills
+              </Link>
+            )}
+            {hasPermission(user.role, 'customers:read') && (
+              <Link href="/customers" className="hover:text-blue-600 transition-colors">
+                Customers
+              </Link>
+            )}
+            {hasPermission(user.role, 'catalogue:read') && (
+              <Link href="/catalogue" className="hover:text-blue-600 transition-colors">
+                Catalogue
+              </Link>
+            )}
+          </nav>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
@@ -61,30 +91,75 @@ export default function DashboardClient({ user }: { user: SafeUser }) {
       </header>
 
       <main className="flex-grow p-6 flex flex-col items-center justify-start mt-8">
-        <Card className="w-full max-w-2xl p-6 mb-6">
+        <Card className="w-full max-w-4xl p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             
-            {hasPermission(user.role, 'catalogue:read') && (
-              <a href="/catalogue" className="w-full">
-                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
-                  <span>📦</span> Catalogue
+            {hasPermission(user.role, 'parcha:upload') && (
+              <Link href="/parcha/new" className="w-full">
+                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer bg-blue-50/80 hover:bg-blue-100/90 border border-blue-200">
+                  <span className="text-2xl">📸</span>
+                  <span className="font-semibold text-blue-900">Upload Parcha</span>
                 </Button>
-              </a>
+              </Link>
             )}
-            <Button variant="secondary" className="w-full h-24 flex flex-col gap-2">
-              <span>📄</span> Estimates
-            </Button>
+
+            {hasPermission(user.role, 'parcha:read') && (
+              <Link href="/parcha" className="w-full">
+                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
+                  <span className="text-2xl">📋</span>
+                  <span>Parcha Jobs</span>
+                </Button>
+              </Link>
+            )}
+
+            {hasPermission(user.role, 'catalogue:read') && (
+              <Link href="/catalogue" className="w-full">
+                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
+                  <span className="text-2xl">📦</span>
+                  <span>Catalogue</span>
+                </Button>
+              </Link>
+            )}
+
+            {hasPermission(user.role, 'customers:read') && (
+              <Link href="/customers" className="w-full">
+                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
+                  <span className="text-2xl">👥</span>
+                  <span>Customers</span>
+                </Button>
+              </Link>
+            )}
+
+            {hasPermission(user.role, 'estimates:read') && (
+              <Link href="/estimates" className="w-full">
+                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
+                  <span className="text-2xl">📄</span>
+                  <span>Estimates</span>
+                </Button>
+              </Link>
+            )}
+
+            {hasPermission(user.role, 'invoices:read') && (
+              <Link href="/bills" className="w-full">
+                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
+                  <span className="text-2xl">🧾</span>
+                  <span>Bills</span>
+                </Button>
+              </Link>
+            )}
             
             {canViewProfit && (
-              <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 bg-green-50 hover:bg-green-100 border-green-200">
-                <span>📈</span> Profit Reports
+              <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 bg-green-50 hover:bg-green-100 border border-green-200">
+                <span className="text-2xl">📈</span>
+                <span>Profit Reports</span>
               </Button>
             )}
 
             {canManageUsers && (
-              <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 bg-purple-50 hover:bg-purple-100 border-purple-200">
-                <span>👥</span> Manage Users
+              <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 bg-purple-50 hover:bg-purple-100 border border-purple-200">
+                <span className="text-2xl">👥</span>
+                <span>Manage Users</span>
               </Button>
             )}
           </div>

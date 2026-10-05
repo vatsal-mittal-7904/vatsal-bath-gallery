@@ -29,7 +29,8 @@ export class ApiFetchError extends Error {
 }
 
 export async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/v1${endpoint}`, {
+  const url = endpoint.startsWith('/api/v1') ? endpoint : `/api/v1${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const response = await fetch(url, {
     credentials: 'same-origin',
     ...options,
     headers: {

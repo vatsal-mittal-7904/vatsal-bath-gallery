@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
 import { withApiWrapper, successResponse } from '@/lib/api-wrapper';
 import { loginSchema } from '@/features/auth/auth.validation';
