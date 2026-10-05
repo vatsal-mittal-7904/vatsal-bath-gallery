@@ -25,6 +25,11 @@ model User {
 
   sessions       Session[]
   stockMovements StockMovement[]
+
+  createdEstimates Estimate[]  @relation("EstimateCreator")
+  createdBills     Bill[]      @relation("BillCreator")
+  recordedPayments Payment[]   @relation("PaymentRecorder")
+  uploadedParchas  ParchaJob[] @relation("ParchaUploader")
 }
 
 model Session {
@@ -61,6 +66,9 @@ model Brand {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Optimistic Concurrency Control
+  version Int @default(0)
+
   products Product[]
 }
 
@@ -77,6 +85,8 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   variants ProductVariant[]
+
+  parchaJobRows ParchaJobRow[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -100,6 +110,11 @@ model ProductVariant {
   inventoryBalances InventoryBalance[]
   stockMovements    StockMovement[]
 
+  estimateLines EstimateLine[]
+  billLines     BillLine[]
+
+  parchaJobRows ParchaJobRow[]
+
   @@index([productId])
 }
 
@@ -119,11 +134,13 @@ model InventoryLocation {
   name        String
   description String?
   isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   balances  InventoryBalance[]
   movements StockMovement[]
+  bills     Bill[]
 
   transfersOut StockTransfer[] @relation("SourceLocation")
   transfersIn  StockTransfer[] @relation("DestinationLocation")
@@ -153,14 +170,16 @@ model StockMovement {
   variantId  String
   locationId String
   userId     String?
+  billId     String?
 
   type     MovementType
   quantity Decimal      @db.Decimal(12, 3)
 
   transferId String?
 
-  reference String?
-  reason    String?
+  reference      String?
+  reason         String?
+  idempotencyKey String? @unique
 
   createdAt DateTime @default(now())
 
@@ -168,11 +187,13 @@ model StockMovement {
   location InventoryLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
   user     User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   transfer StockTransfer?    @relation(fields: [transferId], references: [id], onDelete: Restrict)
+  bill     Bill?             @relation(fields: [billId], references: [id], onDelete: SetNull)
 
   @@index([variantId])
   @@index([locationId])
   @@index([createdAt])
   @@index([transferId])
+  @@index([billId])
 }
 
 enum TransferStatus {
@@ -195,4 +216,307 @@ model StockTransfer {
   destination InventoryLocation @relation("DestinationLocation", fields: [destinationId], references: [id], onDelete: Restrict)
 
   movements StockMovement[]
+}
+
+// ==========================================
+// Phase 5: Estimates and Billing
+// ==========================================
+
+model Customer {
+  id             String   @id @default(uuid())
+  name           String
+  phoneNumber    String
+  email          String?
+  billingAddress String?
+  gstin          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  estimates Estimate[]
+  bills     Bill[]
+}
+
+enum EstimateStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+model Estimate {
+  id             String         @id @default(uuid())
+  estimateNumber String         @unique
+  customerId     String?
+  customer       Customer?      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  status         EstimateStatus @default(DRAFT)
+  issueDate      DateTime       @default(now())
+  validityDate   DateTime?
+
+  subtotal      Decimal @db.Decimal(12, 2)
+  discountTotal Decimal @db.Decimal(12, 2)
+  taxTotal      Decimal @db.Decimal(12, 2)
+  grandTotal    Decimal @db.Decimal(12, 2)
+
+  notes String?
+  terms String?
+
+  creatorId String?
+  creator   User?   @relation("EstimateCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+
+  bill Bill? @relation("EstimateToBill")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  idempotencyKey String? @unique
+
+  parchaJobId String?
+  parchaJob   ParchaJob? @relation(fields: [parchaJobId], references: [id], onDelete: SetNull)
+
+  version Int @default(0)
+
+  lines EstimateLine[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([parchaJobId])
+}
+
+model EstimateLine {
+  id         String   @id @default(uuid())
+  estimateId String
+  estimate   Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  productSnapshot String
+  variantSnapshot String?
+  skuSnapshot     String?
+
+  quantity      Decimal @db.Decimal(12, 3)
+  unitOfMeasure String?
+
+  unitRate       Decimal @db.Decimal(12, 2)
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+  taxRate        Decimal @default(0) @db.Decimal(5, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(12, 2)
+
+  subtotal   Decimal @db.Decimal(12, 2)
+  lineAmount Decimal @db.Decimal(12, 2)
+
+  parchaRowId String?
+  parchaRow   ParchaJobRow? @relation(fields: [parchaRowId], references: [id], onDelete: SetNull)
+
+  sortOrder Int @default(0)
+
+  @@index([estimateId])
+  @@index([parchaRowId])
+}
+
+enum BillStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+model Bill {
+  id         String    @id @default(uuid())
+  billNumber String    @unique
+  estimateId String?   @unique
+  estimate   Estimate? @relation("EstimateToBill", fields: [estimateId], references: [id], onDelete: SetNull)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  locationId String?
+  location   InventoryLocation? @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  status    BillStatus @default(DRAFT)
+  issueDate DateTime   @default(now())
+
+  subtotal      Decimal @db.Decimal(12, 2)
+  discountTotal Decimal @db.Decimal(12, 2)
+  taxTotal      Decimal @db.Decimal(12, 2)
+  grandTotal    Decimal @db.Decimal(12, 2)
+
+  amountPaid Decimal @default(0) @db.Decimal(12, 2)
+  balanceDue Decimal @db.Decimal(12, 2)
+
+  notes String?
+  terms String?
+
+  creatorId String?
+  creator   User?   @relation("BillCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  idempotencyKey String? @unique
+
+  lines          BillLine[]
+  payments       Payment[]
+  stockMovements StockMovement[]
+
+  @@index([customerId])
+  @@index([locationId])
+  @@index([status])
+}
+
+model BillLine {
+  id     String @id @default(uuid())
+  billId String
+  bill   Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  productSnapshot String
+  variantSnapshot String?
+  skuSnapshot     String?
+
+  quantity      Decimal @db.Decimal(12, 3)
+  unitOfMeasure String?
+
+  unitRate       Decimal @db.Decimal(12, 2)
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+  taxRate        Decimal @default(0) @db.Decimal(5, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(12, 2)
+
+  subtotal   Decimal @db.Decimal(12, 2)
+  lineAmount Decimal @db.Decimal(12, 2)
+
+  sortOrder Int @default(0)
+
+  @@index([billId])
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  OTHER
+}
+
+model Payment {
+  id     String @id @default(uuid())
+  billId String
+  bill   Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  amount        Decimal       @db.Decimal(12, 2)
+  paymentDate   DateTime      @default(now())
+  paymentMethod PaymentMethod
+
+  transactionRef String?
+  notes          String?
+
+  recordedById String?
+  recordedBy   User?   @relation("PaymentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  idempotencyKey String? @unique
+
+  @@index([billId])
+}
+
+model DocumentSequence {
+  id        String   @id // e.g. ESTIMATE, BILL
+  prefix    String // e.g. EST-, INV-
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// Phase 6: Parcha & OCR
+// ==========================================
+
+enum ParchaJobStatus {
+  UPLOADED
+  QUEUED
+  PROCESSING
+  REVIEW_REQUIRED
+  COMPLETED
+  FAILED
+}
+
+model ParchaJob {
+  id         String @id @default(uuid())
+  uploaderId String
+  uploader   User   @relation("ParchaUploader", fields: [uploaderId], references: [id], onDelete: Restrict)
+
+  originalFilename String
+  storageKey       String @unique
+  mimeType         String
+  sizeBytes        Int
+
+  status       ParchaJobStatus @default(UPLOADED)
+  errorMessage String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  processingStartedAt   DateTime?
+  processingCompletedAt DateTime?
+
+  rawOcrText         String? @db.Text
+  ocrProvider        String?
+  ocrModel           String?
+  processingAttempts Int     @default(0)
+  processingToken    String?
+
+  rows      ParchaJobRow[]
+  estimates Estimate[]
+
+  @@index([uploaderId])
+  @@index([status])
+}
+
+model ParchaJobRow {
+  id        String    @id @default(uuid())
+  jobId     String
+  job       ParchaJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sortOrder Int       @default(0)
+
+  // Raw OCR Values
+  ocrOriginalText          String
+  ocrProductName           String?
+  ocrNormalizedProductName String?
+  ocrBrand                 String?
+  ocrSize                  String?
+  ocrQuantity              String?
+  ocrUnit                  String?
+  ocrDescription           String?
+  ocrConfidence            String?
+  ocrNotes                 String?
+
+  // User Corrected Values
+  revisedProductName           String?
+  revisedNormalizedProductName String?
+  revisedBrand                 String?
+  revisedSize                  String?
+  revisedQuantity              String?
+  revisedUnit                  String?
+  revisedDescription           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Optimistic Concurrency Control
+  version Int @default(0)
+
+  // Catalogue Match (Staff Confirmed)
+  confirmedProductId String?
+  confirmedProduct   Product?        @relation(fields: [confirmedProductId], references: [id], onDelete: SetNull)
+  confirmedVariantId String?
+  confirmedVariant   ProductVariant? @relation(fields: [confirmedVariantId], references: [id], onDelete: SetNull)
+
+  estimateLines EstimateLine[]
+
+  @@index([jobId])
 }
