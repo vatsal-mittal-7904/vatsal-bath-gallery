@@ -5,7 +5,8 @@ import { BillService } from '@/features/billing/bill.service';
 import { billStatusUpdateSchema } from '@/features/billing/billing.validation';
 import { BillStatus } from '@prisma/client';
 
-export const POST = withApiWrapper(async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const POST = withApiWrapper(async (req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) => {
+  const { id } = await params;
   const body = await req.json();
   const { status, locationId, reason } = billStatusUpdateSchema.parse(body);
 
@@ -18,7 +19,7 @@ export const POST = withApiWrapper(async (req: NextRequest, { params }: { params
 
   const idempotencyKey = req.headers.get('idempotency-key') || undefined;
 
-  const bill = await BillService.updateStatus(params.id, status, {
+  const bill = await BillService.updateStatus(id, status, {
     userId: user?.id,
     locationId,
     idempotencyKey,

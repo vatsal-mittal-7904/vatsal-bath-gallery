@@ -23,7 +23,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   OWNER: [
     'dashboard:read',
     'catalogue:read', 'catalogue:create', 'catalogue:update', 'catalogue:archive',
-    'inventory:read', 'inventory:adjust', 'inventory:manage',
+    'inventory:read', 'inventory:locations:manage', 'inventory:stock:manage', 'inventory:transfer:manage', 'inventory:adjust', 'inventory:manage',
     'customers:read', 'customers:create', 'customers:update', 'customers:delete',
     'estimates:read', 'estimates:create', 'estimates:update', 'estimates:delete',
     'invoices:read', 'invoices:create', 'invoices:update', 'invoices:cancel',

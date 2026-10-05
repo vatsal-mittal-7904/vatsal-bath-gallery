@@ -3,8 +3,9 @@ import { withApiWrapper, successResponse } from '@/lib/api-wrapper';
 import { requirePermission } from '@/features/auth/auth.guard';
 import { CustomerService } from '@/features/billing/customer.service';
 
-export const POST = withApiWrapper(async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const POST = withApiWrapper(async (req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) => {
   await requirePermission('customers:delete');
-  const customer = await CustomerService.archiveCustomer(params.id);
+  const { id } = await params;
+  const customer = await CustomerService.archiveCustomer(id);
   return successResponse({ customer }, 'Customer archived', 200, req);
 });

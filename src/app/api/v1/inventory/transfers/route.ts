@@ -8,7 +8,11 @@ export const POST = withApiWrapper(async (req) => {
   await requirePermission('inventory:transfer:manage');
   const user = await getAuthenticatedUser();
   const body = await req.json();
-  const data = stockTransferSchema.parse(body);
+  const headerIdemp = req.headers.get('idempotency-key') || undefined;
+  const data = stockTransferSchema.parse({
+    ...body,
+    idempotencyKey: body.idempotencyKey || headerIdemp
+  });
 
   const result = await InventoryService.transferStock({ ...data, userId: user!.id });
   return NextResponse.json({ transferId: result.transfer.id }, { status: 201 });
