@@ -1,15 +1,30 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
+import { hashPassword } from '../src/features/auth/password.utils';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Seeding database...');
   
-  // NOTE: We do not seed the initial OWNER account here.
-  // The creation of the first OWNER account will be handled by a secure 
-  // first-run setup flow in the application UI (to be implemented in Phase 2),
-  // which will properly hash the password and ensure credentials are never
-  // stored or passed in plaintext/environment variables.
+  const existingOwner = await prisma.user.findFirst({
+    where: { role: Role.OWNER }
+  });
+
+  if (!existingOwner) {
+    const passwordHash = await hashPassword('Password123!');
+    await prisma.user.create({
+      data: {
+        email: 'owner@vatsal.com',
+        name: 'Store Owner',
+        passwordHash,
+        role: Role.OWNER,
+        isActive: true,
+      }
+    });
+    console.log('Seeded initial OWNER account: owner@vatsal.com / Password123!');
+  } else {
+    console.log('Existing OWNER account already present.');
+  }
 
   console.log('Seeding completed.');
 }
