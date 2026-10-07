@@ -39,15 +39,38 @@ export async function fetchApi<T>(endpoint: string, options?: RequestInit): Prom
     },
   });
 
-  const json = (await response.json()) as ApiResponse<T>;
-
-  if (!response.ok || !json.success) {
-    throw new ApiFetchError(
-      json.error?.message || 'An unknown error occurred',
-      response.status,
-      json.error?.code || 'UNKNOWN'
-    );
+  let json: (ApiResponse<T> & Record<string, unknown>) | null = null;
+  try {
+    json = (await response.json()) as ApiResponse<T> & Record<string, unknown>;
+  } catch {
+    json = null;
   }
 
-  return json.data as T;
+  if (!response.ok) {
+    const errorMsg =
+      json?.error?.message ||
+      (typeof json?.error === 'string' ? json.error : null) ||
+      (typeof json?.message === 'string' ? json.message : null) ||
+      'An unexpected error occurred';
+    const errorCode = json?.error?.code || (typeof json?.code === 'string' ? json.code : 'UNKNOWN');
+    throw new ApiFetchError(errorMsg, response.status, errorCode);
+  }
+
+  // Handle explicit API failure payload: { success: false, ... }
+  if (json && typeof json === 'object' && 'success' in json && json.success === false) {
+    const errorMsg =
+      json.error?.message ||
+      (typeof json.error === 'string' ? json.error : null) ||
+      'The request was unsuccessful';
+    const errorCode = json.error?.code || 'API_ERROR';
+    throw new ApiFetchError(errorMsg, response.status, errorCode);
+  }
+
+  // If standard API wrapper ({ success: true, data: T }), unwrap data
+  if (json && typeof json === 'object' && json.success === true && 'data' in json) {
+    return json.data as T;
+  }
+
+  // Otherwise return raw json payload directly
+  return json as T;
 }

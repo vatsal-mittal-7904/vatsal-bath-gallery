@@ -2,7 +2,7 @@
 import { prisma } from '@/lib/db/client';
 import { ConflictError, NotFoundError, ValidationError, InsufficientStockError } from '@/lib/errors';
 import { BillStatus, EstimateStatus, MovementType, Prisma } from '@prisma/client';
-import { SafeBill, SafeBillLine } from './billing.types';
+import { SafeBill, SafeBillLine, SafeBillLineProfit, SafeBillProfit } from './billing.types';
 import { BillingCalculationService } from './billing-calculation.service';
 import { DocumentSequenceService } from './document-sequence.service';
 import { CustomerService } from './customer.service';
@@ -915,21 +915,29 @@ export class BillService {
     throw new ValidationError(`Unsupported bill status transition to ${status}.`);
   }
 
-  static async getBill(id: string): Promise<SafeBill> {
+  static async getBill(id: string, options?: { includeProfit?: boolean }): Promise<SafeBill> {
     const bill = await prisma.bill.findUnique({
       where: { id },
       include: {
-        lines: true,
+        lines: {
+          include: { variant: true },
+          orderBy: { sortOrder: 'asc' }
+        },
         customer: true,
         location: true,
         estimate: { select: { id: true, estimateNumber: true } }
       }
     });
     if (!bill) throw new NotFoundError("Bill not found");
-    return this.toSafeBill(bill);
+    return this.toSafeBill(bill, options);
   }
 
-  static async getBills(page = 1, limit = 50, filters?: { customerId?: string, status?: BillStatus }): Promise<{ items: SafeBill[], total: number }> {
+  static async getBills(
+    page = 1,
+    limit = 50,
+    filters?: { customerId?: string, status?: BillStatus },
+    options?: { includeProfit?: boolean }
+  ): Promise<{ items: SafeBill[], total: number }> {
     const where: any = {};
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.status) where.status = filters.status;
@@ -941,6 +949,10 @@ export class BillService {
         take: limit,
         orderBy: { issueDate: 'desc' },
         include: {
+          lines: {
+            include: { variant: true },
+            orderBy: { sortOrder: 'asc' }
+          },
           customer: true,
           location: true,
           estimate: { select: { id: true, estimateNumber: true } }
@@ -948,7 +960,7 @@ export class BillService {
       }),
       prisma.bill.count({ where })
     ]);
-    return { items: items.map(this.toSafeBill), total };
+    return { items: items.map(b => this.toSafeBill(b, options)), total };
   }
 
   private static async prepareLines(lines: any[], tx: any = prisma) {
@@ -975,8 +987,77 @@ export class BillService {
     return calculatedLines;
   }
 
-  static toSafeBill(bill: any): SafeBill {
+  static toSafeBill(bill: any, options?: { includeProfit?: boolean }): SafeBill {
     const { createdAt, updatedAt, subtotal, discountTotal, taxTotal, grandTotal, amountPaid, balanceDue, lines, customer, estimate, location, ...safe } = bill;
+
+    let billProfit: SafeBillProfit | undefined = undefined;
+
+    let safeLines: SafeBillLine[] | undefined = undefined;
+    if (lines) {
+      let totalBillCost = new Prisma.Decimal(0);
+      let totalBillRevenue = new Prisma.Decimal(0);
+
+      safeLines = lines.map((l: any) => {
+        const { quantity, unitRate, discountAmount, taxRate, taxAmount, subtotal: lSub, lineAmount, variant, ...safeLine } = l;
+
+        let lineProfitObj: SafeBillLineProfit | undefined = undefined;
+
+        if (options?.includeProfit) {
+          const lineQty = new Prisma.Decimal(quantity.toString());
+          const lineSubtotal = new Prisma.Decimal(lSub.toString());
+          const lineDisc = new Prisma.Decimal(discountAmount ? discountAmount.toString() : '0');
+          const lineRevenue = lineSubtotal.sub(lineDisc);
+
+          const rawCost = variant?.costPrice ?? l.costPrice ?? null;
+          const unitCost = rawCost !== null && rawCost !== undefined ? new Prisma.Decimal(rawCost.toString()) : new Prisma.Decimal(0);
+          const totalCost = unitCost.mul(lineQty);
+          const grossProfit = lineRevenue.sub(totalCost);
+          const marginPercentage = lineRevenue.gt(0)
+            ? (grossProfit.div(lineRevenue).mul(100)).toFixed(2)
+            : '0.00';
+
+          lineProfitObj = {
+            unitCost: unitCost.toFixed(2),
+            totalCost: totalCost.toFixed(2),
+            grossProfit: grossProfit.toFixed(2),
+            marginPercentage
+          };
+
+          totalBillCost = totalBillCost.add(totalCost);
+          totalBillRevenue = totalBillRevenue.add(lineRevenue);
+        }
+
+        return {
+          ...safeLine,
+          quantity: quantity ? quantity.toString() : '0',
+          unitRate: unitRate ? unitRate.toString() : '0',
+          discountAmount: discountAmount ? discountAmount.toString() : '0',
+          taxRate: taxRate ? taxRate.toString() : '0',
+          taxAmount: taxAmount ? taxAmount.toString() : '0',
+          subtotal: lSub ? lSub.toString() : '0',
+          lineAmount: lineAmount ? lineAmount.toString() : (lSub ? lSub.toString() : '0'),
+          ...(lineProfitObj && { profit: lineProfitObj })
+        };
+      });
+
+      if (options?.includeProfit) {
+        const billSub = new Prisma.Decimal(subtotal.toString());
+        const billDisc = new Prisma.Decimal(discountTotal ? discountTotal.toString() : '0');
+        const billRevenue = billSub.sub(billDisc);
+        const billGrossProfit = billRevenue.sub(totalBillCost);
+        const billMarginPct = billRevenue.gt(0)
+          ? (billGrossProfit.div(billRevenue).mul(100)).toFixed(2)
+          : '0.00';
+
+        billProfit = {
+          totalCost: totalBillCost.toFixed(2),
+          totalRevenue: billRevenue.toFixed(2),
+          grossProfit: billGrossProfit.toFixed(2),
+          marginPercentage: billMarginPct
+        };
+      }
+    }
+
     return {
       ...safe,
       subtotal: subtotal.toString(),
@@ -985,21 +1066,7 @@ export class BillService {
       grandTotal: grandTotal.toString(),
       amountPaid: amountPaid.toString(),
       balanceDue: balanceDue.toString(),
-      ...(lines && {
-        lines: lines.map((l: any) => {
-          const { quantity, unitRate, discountAmount, taxRate, taxAmount, subtotal: lSub, lineAmount, ...safeLine } = l;
-          return {
-            ...safeLine,
-            quantity: quantity.toString(),
-            unitRate: unitRate.toString(),
-            discountAmount: discountAmount.toString(),
-            taxRate: taxRate.toString(),
-            taxAmount: taxAmount.toString(),
-            subtotal: lSub.toString(),
-            lineAmount: lineAmount.toString()
-          };
-        })
-      }),
+      ...(safeLines && { lines: safeLines }),
       ...(customer && { customer: CustomerService.toSafeCustomer(customer) }),
       ...(location && { location: toSafeLocation(location) }),
       ...(estimate && {
@@ -1007,7 +1074,8 @@ export class BillService {
           id: estimate.id,
           estimateNumber: estimate.estimateNumber
         }
-      })
+      }),
+      ...(billProfit && { profit: billProfit })
     };
   }
 }

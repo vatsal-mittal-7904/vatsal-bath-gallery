@@ -6,6 +6,8 @@ import { billSchema } from '@/features/billing/billing.validation';
 import { z } from 'zod';
 import { BillStatus } from '@prisma/client';
 
+import { hasPermission } from '@/features/auth/permissions';
+
 const filterSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(50),
@@ -14,10 +16,11 @@ const filterSchema = z.object({
 });
 
 export const GET = withApiWrapper(async (req: NextRequest) => {
-  await requirePermission('invoices:read');
+  const user = await requirePermission('invoices:read');
   const query = Object.fromEntries(new URL(req.url).searchParams);
   const { page, limit, ...filters } = filterSchema.parse(query);
-  const result = await BillService.getBills(page, limit, filters);
+  const includeProfit = hasPermission(user.role, 'reports:profit:read');
+  const result = await BillService.getBills(page, limit, filters, { includeProfit });
   return successResponse(result, 'Bills retrieved', 200, req);
 });
 

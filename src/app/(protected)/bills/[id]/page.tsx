@@ -9,10 +9,15 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { hasPermission } from '@/features/auth/permissions';
 
 export default function BillDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useAuth();
+  const canViewProfit = hasPermission(user?.role, 'reports:profit:read');
+
   const [bill, setBill] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
@@ -207,6 +212,38 @@ export default function BillDetail({ params }: { params: Promise<{ id: string }>
             )}
           </div>
 
+          {canViewProfit && bill.profit && (
+            <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">📈</span>
+                  <h4 className="font-semibold text-emerald-950 text-sm">Owner Profit & Margin Breakdown</h4>
+                </div>
+                <span className="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded tracking-wide uppercase">
+                  Confidential
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white p-2.5 rounded border border-emerald-100 shadow-xs">
+                  <span className="text-xs text-gray-500 block">Revenue (excl. Tax)</span>
+                  <span className="text-base font-bold text-gray-900">₹{bill.profit.totalRevenue}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded border border-emerald-100 shadow-xs">
+                  <span className="text-xs text-gray-500 block">Wholesale Cost (COGS)</span>
+                  <span className="text-base font-bold text-gray-700">₹{bill.profit.totalCost}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded border border-emerald-100 shadow-xs">
+                  <span className="text-xs text-gray-500 block">Gross Profit</span>
+                  <span className="text-base font-bold text-emerald-600">₹{bill.profit.grossProfit}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded border border-emerald-100 shadow-xs">
+                  <span className="text-xs text-gray-500 block">Profit Margin</span>
+                  <span className="text-base font-bold text-emerald-700">{bill.profit.marginPercentage}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <h3 className="font-semibold mb-2 border-b pb-2">Line Items</h3>
             <table className="w-full text-sm">
@@ -214,8 +251,17 @@ export default function BillDetail({ params }: { params: Promise<{ id: string }>
                 <tr className="border-b text-gray-500">
                   <th className="text-left py-2">Item</th>
                   <th className="text-right py-2">Qty</th>
-                  <th className="text-right py-2">Rate</th>
+                  <th className="text-right py-2">Selling Rate</th>
+                  {canViewProfit && bill.profit && (
+                    <>
+                      <th className="text-right py-2 text-emerald-800">Unit Cost</th>
+                      <th className="text-right py-2 text-emerald-800">Total Cost</th>
+                    </>
+                  )}
                   <th className="text-right py-2">Amount (Rounded)</th>
+                  {canViewProfit && bill.profit && (
+                    <th className="text-right py-2 text-emerald-800">Profit</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -227,7 +273,25 @@ export default function BillDetail({ params }: { params: Promise<{ id: string }>
                     </td>
                     <td className="py-2 text-right">{line.quantity}</td>
                     <td className="py-2 text-right">₹{line.unitRate}</td>
+                    {canViewProfit && bill.profit && (
+                      <>
+                        <td className="py-2 text-right text-gray-600 font-mono text-xs">
+                          ₹{line.profit?.unitCost || '0.00'}
+                        </td>
+                        <td className="py-2 text-right text-gray-600 font-mono text-xs">
+                          ₹{line.profit?.totalCost || '0.00'}
+                        </td>
+                      </>
+                    )}
                     <td className="py-2 text-right font-medium">₹{line.lineAmount}</td>
+                    {canViewProfit && bill.profit && (
+                      <td className="py-2 text-right font-semibold text-emerald-700 font-mono text-xs">
+                        ₹{line.profit?.grossProfit || '0.00'}
+                        <span className="block text-[10px] text-emerald-600 font-normal">
+                          {line.profit?.marginPercentage || '0.00'}%
+                        </span>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -235,10 +299,22 @@ export default function BillDetail({ params }: { params: Promise<{ id: string }>
           </div>
 
           <div className="flex justify-end border-t pt-4">
-            <div className="w-48 space-y-2">
+            <div className="w-56 space-y-2">
               <div className="flex justify-between text-sm text-gray-500"><span>Subtotal:</span> <span>₹{bill.subtotal}</span></div>
               <div className="flex justify-between text-sm text-gray-500"><span>Tax:</span> <span>₹{bill.taxTotal}</span></div>
               <div className="flex justify-between font-bold text-lg"><span>Total:</span> <span>₹{bill.grandTotal}</span></div>
+              {canViewProfit && bill.profit && (
+                <div className="mt-2 pt-2 border-t border-emerald-200 bg-emerald-50 p-2.5 rounded text-xs space-y-1">
+                  <div className="flex justify-between text-emerald-950 font-medium">
+                    <span>Total Profit:</span>
+                    <span className="font-bold text-emerald-700">₹{bill.profit.grossProfit}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-800">
+                    <span>Profit Margin:</span>
+                    <span className="font-semibold">{bill.profit.marginPercentage}%</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Card>

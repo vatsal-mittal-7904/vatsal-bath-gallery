@@ -18,6 +18,7 @@ export default function ParchaDetailPage({ params }: { params: Promise<{ id: str
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAutoMatching, setIsAutoMatching] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const loadJob = () => {
@@ -51,6 +52,23 @@ export default function ParchaDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const handleAutoConfirm = async () => {
+    setIsAutoMatching(true);
+    setError('');
+    try {
+      const res = await fetchApi<any>(`/api/v1/parcha-jobs/${id}/matching`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      loadJob();
+      alert(`Auto-confirmed ${res.matchedCount || 0} catalogue matches!`);
+    } catch (err: any) {
+      alert('Failed to auto-confirm: ' + (err.message || 'Error'));
+    } finally {
+      setIsAutoMatching(false);
+    }
+  };
+
   const handleSaveRows = async () => {
     setIsSaving(true);
     try {
@@ -58,6 +76,7 @@ export default function ParchaDetailPage({ params }: { params: Promise<{ id: str
         method: 'PATCH',
         body: JSON.stringify({ rows: extraction.rows })
       });
+      loadJob();
       alert('Draft saved successfully');
     } catch (err: any) {
       alert('Failed to save draft: ' + err.message);
@@ -66,10 +85,64 @@ export default function ParchaDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const updateRow = (rowIndex: number, field: string, value: string) => {
-    const newRows = [...extraction.rows];
-    newRows[rowIndex] = { ...newRows[rowIndex], [field]: value };
-    setExtraction({ ...extraction, rows: newRows });
+  const handleConfirmRowMatch = async (rowIndex: number, productId: string | null, variantId: string | null) => {
+    const row = extraction.rows[rowIndex];
+    if (!row) return;
+
+    // Functional state update ensures freshest array without race conditions
+    setExtraction((prev: any) => {
+      if (!prev?.rows) return prev;
+      const newRows = [...prev.rows];
+      newRows[rowIndex] = { ...newRows[rowIndex], confirmedProductId: productId, confirmedVariantId: variantId };
+      return { ...prev, rows: newRows };
+    });
+
+    try {
+      await fetchApi(`/api/v1/parcha-jobs/${id}/extraction`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          rows: [{
+            id: row.id,
+            version: typeof row.version === 'number' ? row.version : 0,
+            revisedProductName: row.revisedProductName ?? null,
+            revisedNormalizedProductName: row.revisedNormalizedProductName ?? null,
+            revisedBrand: row.revisedBrand ?? null,
+            revisedSize: row.revisedSize ?? null,
+            revisedQuantity: row.revisedQuantity ?? null,
+            revisedUnit: row.revisedUnit ?? null,
+            revisedDescription: row.revisedDescription ?? null,
+            confirmedProductId: productId ?? null,
+            confirmedVariantId: variantId ?? null
+          }]
+        })
+      });
+
+      // Advance version locally on successful save
+      setExtraction((prev: any) => {
+        if (!prev?.rows) return prev;
+        const newRows = [...prev.rows];
+        newRows[rowIndex] = {
+          ...newRows[rowIndex],
+          confirmedProductId: productId,
+          confirmedVariantId: variantId,
+          version: (newRows[rowIndex].version || 0) + 1
+        };
+        return { ...prev, rows: newRows };
+      });
+    } catch (err: any) {
+      console.error('Auto-save error on row confirmation:', err);
+      alert('Error confirming match: ' + (err.message || 'Unknown error'));
+      loadJob();
+    }
+  };
+
+  const updateRow = (rowIndex: number, field: string, value: any) => {
+    setExtraction((prev: any) => {
+      if (!prev?.rows) return prev;
+      const newRows = [...prev.rows];
+      newRows[rowIndex] = { ...newRows[rowIndex], [field]: value };
+      return { ...prev, rows: newRows };
+    });
   };
 
   if (error) return <div className="p-6 text-red-500 font-bold">{error}</div>;
@@ -146,9 +219,19 @@ export default function ParchaDetailPage({ params }: { params: Promise<{ id: str
             <h3 className="text-lg font-bold">OCR Extraction & Catalogue Review</h3>
             <div className="flex gap-2">
               {job.status === 'REVIEW_REQUIRED' && (
-                <Button onClick={handleSaveRows} disabled={isSaving} variant="secondary">
-                  {isSaving ? 'Saving...' : 'Save Draft Edits'}
-                </Button>
+                <>
+                  <Button 
+                    onClick={handleAutoConfirm} 
+                    disabled={isAutoMatching || isSaving} 
+                    variant="primary"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {isAutoMatching ? 'Matching...' : '⚡ Auto-Confirm Matches'}
+                  </Button>
+                  <Button onClick={handleSaveRows} disabled={isSaving || isAutoMatching} variant="secondary">
+                    {isSaving ? 'Saving...' : 'Save Draft Edits'}
+                  </Button>
+                </>
               )}
               {(job.status === 'REVIEW_REQUIRED' || job.status === 'COMPLETED') && (
                 <Link href={`/parcha/${job.id}/estimate`}>
@@ -269,8 +352,7 @@ export default function ParchaDetailPage({ params }: { params: Promise<{ id: str
                           currentProductId={row.confirmedProductId}
                           currentVariantId={row.confirmedVariantId}
                           onConfirm={(pId, vId) => {
-                            updateRow(i, "confirmedProductId", pId as any);
-                            updateRow(i, "confirmedVariantId", vId as any);
+                            handleConfirmRowMatch(i, pId, vId);
                           }} 
                         />
                       </td>

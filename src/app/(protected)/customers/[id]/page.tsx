@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi } from '@/lib/api-client';
 import { Button } from '@/components/ui/Button';
@@ -9,22 +9,23 @@ import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import Link from 'next/link';
 
-export default function CustomerDetail({ params }: { params: { id: string } }) {
+export default function CustomerDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchApi<{ customer: any }>(`/api/v1/customers/${params.id}`)
+    fetchApi<{ customer: any }>(`/api/v1/customers/${id}`)
       .then(res => setCustomer(res.customer))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   const handleArchive = async () => {
     if (!confirm('Are you sure you want to archive this customer?')) return;
     try {
-      await fetchApi(`/api/v1/customers/${params.id}/archive`, { method: 'POST' });
+      await fetchApi(`/api/v1/customers/${id}/archive`, { method: 'POST' });
       router.push('/customers');
     } catch (err: any) {
       alert(err.message);

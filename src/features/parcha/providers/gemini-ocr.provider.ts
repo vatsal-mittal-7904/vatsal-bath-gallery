@@ -36,7 +36,8 @@ export const ocrExtractionSchema = z.object({
 
 export class GeminiOcrProvider {
   private genAI: GoogleGenerativeAI;
-  private modelName = 'gemini-3.8-flash';
+  private modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+  private fallbackModels = ['gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.8-flash'];
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -55,43 +56,6 @@ export class GeminiOcrProvider {
   }
 
   async extractFromImage(imageBuffer: Buffer, mimeType: string): Promise<OcrExtractionResult> {
-    const model = this.genAI.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: SchemaType.OBJECT,
-          properties: {
-            rawText: {
-              type: SchemaType.STRING,
-              description: 'The exact raw text visible on the page, preserving line breaks.'
-            },
-            items: {
-              type: SchemaType.ARRAY,
-              description: 'List of product items extracted from the handwritten parcha.',
-              items: {
-                type: SchemaType.OBJECT,
-                properties: {
-                  originalText: { type: SchemaType.STRING, description: 'The exact raw text line/snippet for this specific item without any modification.' },
-                  productName: { type: SchemaType.STRING, description: 'The normalized generic product name (e.g., tap, pipe, basin), if discernible. Use null if uncertain.', nullable: true },
-                  brand: { type: SchemaType.STRING, description: 'Brand name if explicitly visible. null if absent.', nullable: true },
-                  size: { type: SchemaType.STRING, description: 'Dimensions or sizes (e.g. 15mm, 1 inch). null if absent.', nullable: true },
-                  quantity: { type: SchemaType.STRING, description: 'The numeric quantity. Do not infer if missing. null if absent.', nullable: true },
-                  unit: { type: SchemaType.STRING, description: 'Unit of measure (e.g. pc, box, mtr). null if absent.', nullable: true },
-                  description: { type: SchemaType.STRING, description: 'Any extra descriptive shorthand or features. null if absent.', nullable: true },
-                  confidence: { type: SchemaType.STRING, format: 'enum', enum: ['low', 'medium', 'high'], description: 'Confidence level in the overall extraction of this item.' },
-                  notes: { type: SchemaType.STRING, description: 'Any notes regarding handwriting ambiguity, crossed-out text, or uncertainty. null if clear.', nullable: true }
-                },
-                required: ['originalText', 'confidence']
-              }
-            }
-          },
-          required: ['rawText', 'items']
-        }
-      }
-    });
-
     const prompt = `
       You are an expert OCR and data extraction system for handwritten sanitaryware and plumbing item lists (Parchas) in India.
       The lists often contain Hindi, English, and Hinglish.
@@ -104,6 +68,25 @@ export class GeminiOcrProvider {
       5. DO NOT translate the 'productName' into English. The 'productName' MUST remain in its original script (e.g. Hindi). Place English translations ONLY in 'normalizedProductName'.
       6. DO NOT attempt catalogue matching, inventory deduction, or infer pricing/taxes.
       7. If handwriting is illegible, set confidence to "low" and explain in notes.
+
+      Extract all items from this handwritten list as a JSON object with this EXACT structure:
+      {
+        "rawText": "exact full raw text of the document",
+        "items": [
+          {
+            "originalText": "exact line snippet",
+            "productName": "product name (e.g. pipe, elbow) or null",
+            "normalizedProductName": "english normalized name or null",
+            "brand": "brand or null",
+            "size": "dimensions or size or null",
+            "quantity": "numeric quantity or null",
+            "unit": "unit of measure or null",
+            "description": "extra shorthand or details or null",
+            "confidence": "high",
+            "notes": null
+          }
+        ]
+      }
     `;
 
     const imageParts = [
@@ -115,16 +98,41 @@ export class GeminiOcrProvider {
       }
     ];
 
-    try {
-      const result = await model.generateContent([prompt, ...imageParts]);
-      const response = await result.response;
-      const text = response.text();
-      
-      const parsed = JSON.parse(text);
-      return ocrExtractionSchema.parse(parsed);
-    } catch (error: any) {
-      console.error('[GeminiOcrProvider] Extraction Error:', error);
-      throw new Error(`OCR processing failed: ${error.message || 'Unknown error'}`);
+    const modelsToTry = [this.modelName, ...this.fallbackModels.filter(m => m !== this.modelName)];
+    let lastError: any = null;
+
+    for (const modelToUse of modelsToTry) {
+      try {
+        const model = this.genAI.getGenerativeModel({
+          model: modelToUse,
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          }
+        });
+
+        const result = await model.generateContent([prompt, ...imageParts]);
+        const response = await result.response;
+        let text = response.text().trim();
+        
+        if (text.startsWith('```')) {
+          text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+        }
+
+        const parsed = JSON.parse(text);
+        const validated = ocrExtractionSchema.parse(parsed);
+        this.modelName = modelToUse;
+        return validated;
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`[GeminiOcrProvider] Model ${modelToUse} failed: ${error.message}. Trying next candidate...`);
+        if (error.name === 'ZodError') {
+          console.error('[GeminiOcrProvider] Schema error with', modelToUse, error);
+        }
+      }
     }
+
+    console.error('[GeminiOcrProvider] Extraction Error with all models:', lastError);
+    throw new Error(`OCR processing failed: ${lastError?.message || 'Unknown error'}`);
   }
 }

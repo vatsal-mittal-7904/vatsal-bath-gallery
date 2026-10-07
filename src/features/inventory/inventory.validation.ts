@@ -58,6 +58,6 @@ export const stockTransferSchema = z.object({
 });
 
 export const paginationSchema = z.object({
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(50),
+  page: z.preprocess((val) => (val === null || val === '' || val === undefined ? undefined : val), z.coerce.number().min(1).default(1)),
+  limit: z.preprocess((val) => (val === null || val === '' || val === undefined ? undefined : val), z.coerce.number().min(1).max(100).default(50)),
 });

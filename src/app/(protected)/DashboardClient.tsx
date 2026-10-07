@@ -75,6 +75,11 @@ export default function DashboardClient({ user }: { user: SafeUser }) {
                 Catalogue
               </Link>
             )}
+            {canViewProfit && (
+              <Link href="/reports/profit" className="hover:text-emerald-600 transition-colors flex items-center gap-1 font-semibold text-emerald-700">
+                <span>📈</span> Profit
+              </Link>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-4">
@@ -150,10 +155,12 @@ export default function DashboardClient({ user }: { user: SafeUser }) {
             )}
             
             {canViewProfit && (
-              <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 bg-green-50 hover:bg-green-100 border border-green-200">
-                <span className="text-2xl">📈</span>
-                <span>Profit Reports</span>
-              </Button>
+              <Link href="/reports/profit" className="w-full">
+                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 cursor-pointer text-emerald-900">
+                  <span className="text-2xl">📈</span>
+                  <span className="font-semibold">Profit Reports</span>
+                </Button>
+              </Link>
             )}
 
             {canManageUsers && (

@@ -1,43 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi } from '@/lib/api-client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 
-export default function CustomerForm({ params }: { params?: { id: string } }) {
+export default function NewCustomerPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState({ name: '', phoneNumber: '', email: '', address: '', gstin: '' });
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (params?.id) {
-      fetchApi<{ customer: any }>(`/api/v1/customers/${params.id}`)
-        .then(res => {
-          const c = res.customer;
-          setData({ name: c.name, phoneNumber: c.phoneNumber, email: c.email || '', address: c.address || '', gstin: c.gstin || '' });
-        })
-        .catch(err => setError(err.message));
-    }
-  }, [params]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      if (params?.id) {
-        await fetchApi(`/api/v1/customers/${params.id}`, { method: 'PATCH', body: JSON.stringify(data) });
-      } else {
-        await fetchApi('/api/v1/customers', { method: 'POST', body: JSON.stringify(data) });
-      }
+      await fetchApi('/api/v1/customers', { method: 'POST', body: JSON.stringify(data) });
       router.push('/customers');
     } catch (err: any) {
-      setError(err.message || 'Failed to save customer');
+      setError(err.message || 'Failed to create customer');
     } finally {
       setLoading(false);
     }
@@ -45,7 +30,7 @@ export default function CustomerForm({ params }: { params?: { id: string } }) {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">{params?.id ? 'Edit Customer' : 'New Customer'}</h1>
+      <h1 className="text-2xl font-bold mb-6">New Customer</h1>
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
@@ -73,7 +58,7 @@ export default function CustomerForm({ params }: { params?: { id: string } }) {
 
           <div className="flex justify-end gap-2 mt-6">
             <Button variant="secondary" type="button" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={loading}>Save</Button>
+            <Button type="submit" disabled={loading}>Save Customer</Button>
           </div>
         </form>
       </Card>

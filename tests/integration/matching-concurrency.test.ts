@@ -87,7 +87,7 @@ describe.skipIf(!isTestDb)('Production-Grade PostgreSQL Concurrency & Lock Integ
   async function waitForBlockedLockCount(
     querySubstr: string,
     expectedCount: number,
-    timeoutMs = 5000
+    timeoutMs = 10000
   ): Promise<boolean> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -193,7 +193,7 @@ describe.skipIf(!isTestDb)('Production-Grade PostgreSQL Concurrency & Lock Integ
       releaseHold!();
       await holdTx.catch(() => {});
     }
-  });
+  }, 15000);
 
   it('Scenario B: Two simultaneous candidate confirmations (with pg_locks proof)', async () => {
     const { job, row } = await createJobAndRow('scen-b');

@@ -63,6 +63,8 @@ export default function ParchaEstimateDraftPage({ params }: { params: Promise<{ 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const [autoConfirming, setAutoConfirming] = useState(false);
+
   const [job, setJob] = useState<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
   const [excludedRows, setExcludedRows] = useState<ExcludedRow[]>([]);
@@ -75,8 +77,8 @@ export default function ParchaEstimateDraftPage({ params }: { params: Promise<{ 
   const [terms, setTerms] = useState('');
   const [lines, setLines] = useState<DraftLineItem[]>([]);
 
-  useEffect(() => {
-    fetchApi<{
+  const loadEstimateData = () => {
+    return fetchApi<{
       job: any;
       eligibleRows: EligibleRow[];
       excludedRows: ExcludedRow[];
@@ -109,7 +111,27 @@ export default function ParchaEstimateDraftPage({ params }: { params: Promise<{ 
       })
       .catch(err => setError(err.message || 'Failed to load parcha draft'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadEstimateData();
   }, [id]);
+
+  const handleAutoConfirmAndReload = async () => {
+    setAutoConfirming(true);
+    setError('');
+    try {
+      await fetchApi(`/api/v1/parcha-jobs/${id}/matching`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      await loadEstimateData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to auto-confirm matches');
+    } finally {
+      setAutoConfirming(false);
+    }
+  };
 
   const handleLineChange = (index: number, field: keyof DraftLineItem, value: string) => {
     const updated = [...lines];
@@ -309,8 +331,21 @@ export default function ParchaEstimateDraftPage({ params }: { params: Promise<{ 
           </div>
 
           {lines.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              No eligible rows selected. Please add a line item or return to review to confirm catalogue matches.
+            <div className="text-center py-8 text-gray-500 text-sm space-y-3">
+              <div>No eligible rows selected yet because candidate product matches are unconfirmed.</div>
+              {excludedRows.some(r => r.reason === 'UNCONFIRMED_PRODUCT') && (
+                <div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleAutoConfirmAndReload}
+                    disabled={autoConfirming}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                  >
+                    {autoConfirming ? 'Confirming Catalogue Matches...' : '⚡ Auto-Confirm Catalogue Matches & Load Items'}
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -444,9 +479,22 @@ export default function ParchaEstimateDraftPage({ params }: { params: Promise<{ 
           <Card className="p-6 bg-gray-50 border-gray-200">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base font-semibold text-gray-700">Excluded Parcha Rows ({excludedRows.length})</h2>
-              <Link href={`/parcha/${id}`} className="text-xs text-blue-600 hover:underline">
-                Resolve in Parcha Matcher &rarr;
-              </Link>
+              <div className="flex items-center gap-3">
+                {excludedRows.some(r => r.reason === 'UNCONFIRMED_PRODUCT') && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleAutoConfirmAndReload}
+                    disabled={autoConfirming}
+                    className="text-xs py-1 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                  >
+                    {autoConfirming ? 'Matching...' : '⚡ Auto-Confirm & Include in Estimate'}
+                  </Button>
+                )}
+                <Link href={`/parcha/${id}`} className="text-xs text-blue-600 hover:underline">
+                  Resolve in Parcha Matcher &rarr;
+                </Link>
+              </div>
             </div>
             <p className="text-xs text-gray-500 mb-3">
               The following rows from the parcha were excluded because they are unconfirmed or missing valid quantities.

@@ -30,6 +30,20 @@ export type SafeEstimate = Omit<Estimate, 'createdAt' | 'updatedAt' | 'subtotal'
   customer?: SafeCustomer;
 };
 
+export interface SafeBillLineProfit {
+  unitCost: string;
+  totalCost: string;
+  grossProfit: string;
+  marginPercentage: string;
+}
+
+export interface SafeBillProfit {
+  totalCost: string;
+  totalRevenue: string;
+  grossProfit: string;
+  marginPercentage: string;
+}
+
 export type SafeBillLine = Omit<BillLine, 'quantity' | 'unitRate' | 'discountAmount' | 'taxRate' | 'taxAmount' | 'subtotal' | 'lineAmount'> & {
   quantity: string;
   unitRate: string;
@@ -38,6 +52,7 @@ export type SafeBillLine = Omit<BillLine, 'quantity' | 'unitRate' | 'discountAmo
   taxAmount: string;
   subtotal: string;
   lineAmount: string;
+  profit?: SafeBillLineProfit;
 };
 
 export type SafeBill = Omit<Bill, 'createdAt' | 'updatedAt' | 'subtotal' | 'discountTotal' | 'taxTotal' | 'grandTotal' | 'amountPaid' | 'balanceDue'> & {
@@ -54,6 +69,7 @@ export type SafeBill = Omit<Bill, 'createdAt' | 'updatedAt' | 'subtotal' | 'disc
     id: string;
     estimateNumber: string;
   } | null;
+  profit?: SafeBillProfit;
 };
 
 export type SafePayment = Omit<Payment, 'createdAt' | 'updatedAt' | 'amount'> & {
