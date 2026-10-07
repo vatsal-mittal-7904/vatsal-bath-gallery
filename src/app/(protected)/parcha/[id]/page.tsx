@@ -150,11 +150,50 @@ export default function ParchaDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      {/* Quick Navigation & Breadcrumb Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-6 border-b border-gray-200">
+        <nav className="flex items-center gap-2 text-sm text-gray-500">
+          <Link href="/" className="hover:text-blue-600 flex items-center gap-1.5 font-semibold text-gray-800">
+            <span>🏠</span> Home
+          </Link>
+          <span>/</span>
+          <Link href="/parcha" className="hover:text-blue-600 font-medium">
+            Parcha Jobs
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-bold font-mono">Job #{job.id.slice(0, 8)}</span>
+        </nav>
+        <div className="flex items-center gap-2">
+          <Link href="/">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+              <span>🏠</span> Main Homepage
+            </Button>
+          </Link>
+          <Link href="/parcha">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-medium bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+              <span>←</span> All Jobs
+            </Button>
+          </Link>
+          <Link href="/parcha/new">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 shadow-xs">
+              <span>📸</span> New Parcha
+            </Button>
+          </Link>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Parcha Job Details</h1>
-        <Link href="/parcha" className="text-blue-600 hover:underline text-sm font-medium">
-          &larr; Back to List
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/">
+            <Button variant="secondary" className="text-sm font-semibold flex items-center gap-1 bg-white hover:bg-gray-100 border-gray-300">
+              <span>🏠</span> Home
+            </Button>
+          </Link>
+          <Link href="/parcha" className="text-blue-600 hover:underline text-sm font-medium">
+            &larr; Back to List
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

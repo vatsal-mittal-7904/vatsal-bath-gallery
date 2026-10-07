@@ -36,10 +36,42 @@ export default function CustomerDetail({ params }: { params: Promise<{ id: strin
   if (!customer) return <div className="p-6">Customer not found</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Quick Navigation & Breadcrumb Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-200">
+        <nav className="flex items-center gap-2 text-sm text-gray-500">
+          <Link href="/" className="hover:text-blue-600 flex items-center gap-1.5 font-semibold text-gray-800">
+            <span>🏠</span> Home
+          </Link>
+          <span>/</span>
+          <Link href="/customers" className="hover:text-blue-600 font-medium">
+            Customers
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-bold">{customer.name}</span>
+        </nav>
+        <div className="flex items-center gap-2">
+          <Link href="/">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+              <span>🏠</span> Main Homepage
+            </Button>
+          </Link>
+          <Link href="/customers">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-medium bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+              <span>←</span> All Customers
+            </Button>
+          </Link>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{customer.name}</h1>
         <div className="flex gap-2">
+          <Link href="/">
+            <Button variant="secondary" className="text-sm font-semibold flex items-center gap-1 bg-white hover:bg-gray-100 border-gray-300">
+              <span>🏠</span> Home
+            </Button>
+          </Link>
           <Link href={`/customers/${customer.id}/edit`}>
             <Button variant="secondary">Edit</Button>
           </Link>

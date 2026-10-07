@@ -131,26 +131,64 @@ export default function BillDetail({ params }: { params: Promise<{ id: string }>
   if (!bill) return <div className="p-6">Bill not found</div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-2 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Bill {bill.billNumber}</h1>
-          <div className="flex items-center gap-2">
-            <a href={`/bills/${bill.id}/print`} target="_blank" rel="noreferrer">
-              <Button variant="secondary">🖨️ Print / PDF</Button>
-            </a>
-            {bill.status === 'DRAFT' && (
-              <Button onClick={handleIssueBill} disabled={issuing} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                {issuing ? 'Issuing...' : '✓ Issue Bill'}
-              </Button>
-            )}
-            {bill.status !== 'CANCELLED' && parseFloat(bill.amountPaid || '0') === 0 && (
-              <Button variant="secondary" onClick={handleCancelBill} disabled={cancelling} className="text-red-600 hover:text-red-700">
-                {cancelling ? 'Cancelling...' : 'Cancel Bill'}
-              </Button>
-            )}
-          </div>
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+      {/* Quick Navigation & Breadcrumb Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-200">
+        <nav className="flex items-center gap-2 text-sm text-gray-500">
+          <Link href="/" className="hover:text-blue-600 flex items-center gap-1.5 font-semibold text-gray-800">
+            <span>🏠</span> Home
+          </Link>
+          <span>/</span>
+          <Link href="/bills" className="hover:text-blue-600 font-medium">
+            Bills
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-bold font-mono">{bill.billNumber}</span>
+        </nav>
+        <div className="flex items-center gap-2">
+          <Link href="/">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+              <span>🏠</span> Main Homepage
+            </Button>
+          </Link>
+          <Link href="/bills">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-medium bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+              <span>←</span> All Bills
+            </Button>
+          </Link>
+          <Link href="/parcha/new">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 shadow-xs">
+              <span>📸</span> New Parcha
+            </Button>
+          </Link>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Bill {bill.billNumber}</h1>
+            <div className="flex items-center gap-2">
+              <Link href="/">
+                <Button variant="secondary" className="bg-white hover:bg-gray-100 border-gray-300 font-semibold flex items-center gap-1">
+                  <span>🏠</span> Home
+                </Button>
+              </Link>
+              <a href={`/bills/${bill.id}/print`} target="_blank" rel="noreferrer">
+                <Button variant="secondary">🖨️ Print / PDF</Button>
+              </a>
+              {bill.status === 'DRAFT' && (
+                <Button onClick={handleIssueBill} disabled={issuing} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  {issuing ? 'Issuing...' : '✓ Issue Bill'}
+                </Button>
+              )}
+              {bill.status !== 'CANCELLED' && parseFloat(bill.amountPaid || '0') === 0 && (
+                <Button variant="secondary" onClick={handleCancelBill} disabled={cancelling} className="text-red-600 hover:text-red-700">
+                  {cancelling ? 'Cancelling...' : 'Cancel Bill'}
+                </Button>
+              )}
+            </div>
+          </div>
 
         {actionError && (
           <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded text-sm flex justify-between items-center">
@@ -332,6 +370,35 @@ export default function BillDetail({ params }: { params: Promise<{ id: string }>
           </div>
         </Card>
 
+        {bill.status === 'PAID' && (
+          <Card className="p-5 bg-gradient-to-br from-emerald-50 to-green-50/80 border-2 border-emerald-300 text-center space-y-3 shadow-xs">
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-xs">
+              ✓
+            </div>
+            <div>
+              <h3 className="font-bold text-emerald-950 text-base">Bill Fully Settled</h3>
+              <p className="text-xs text-emerald-700 mt-0.5">Payment completed and stock deducted from inventory.</p>
+            </div>
+            <div className="pt-2 space-y-2">
+              <Link href="/" className="block w-full">
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 shadow-xs flex items-center justify-center gap-2">
+                  <span>🏠</span> Return to Main Homepage
+                </Button>
+              </Link>
+              <Link href="/bills" className="block w-full">
+                <Button variant="secondary" className="w-full bg-white hover:bg-gray-100 border-gray-300 font-semibold py-2 flex items-center justify-center gap-2">
+                  <span>📋</span> View All Bills
+                </Button>
+              </Link>
+              <Link href="/parcha/new" className="block w-full">
+                <Button variant="secondary" className="w-full bg-white hover:bg-blue-50 text-blue-700 border-blue-200 font-semibold py-2 flex items-center justify-center gap-2">
+                  <span>📸</span> Start Next Parcha
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        )}
+
         {bill.status === 'DRAFT' && (
           <Card className="p-4 bg-amber-50 border-amber-200 text-amber-800 text-sm">
             <p className="font-semibold mb-1">Draft Bill</p>
@@ -385,5 +452,27 @@ export default function BillDetail({ params }: { params: Promise<{ id: string }>
         </Card>
       </div>
     </div>
-  );
+
+    {/* Bottom Footer Navigation Bar */}
+    <div className="pt-6 border-t border-gray-200 flex flex-wrap justify-between items-center gap-3">
+      <Link href="/bills">
+        <Button variant="secondary" className="flex items-center gap-1.5 font-medium bg-white hover:bg-gray-100 border-gray-300">
+          <span>←</span> Back to All Bills
+        </Button>
+      </Link>
+      <div className="flex items-center gap-3">
+        <Link href="/parcha/new">
+          <Button variant="secondary" className="flex items-center gap-1.5 text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 font-semibold">
+            <span>📸</span> New Parcha
+          </Button>
+        </Link>
+        <Link href="/">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2 shadow-xs">
+            <span>🏠</span> Return to Main Homepage
+          </Button>
+        </Link>
+      </div>
+    </div>
+  </div>
+);
 }

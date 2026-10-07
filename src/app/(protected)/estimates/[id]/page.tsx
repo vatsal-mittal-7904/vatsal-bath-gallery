@@ -307,6 +307,38 @@ export default function EstimateDetail({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
+      {/* Quick Navigation & Breadcrumb Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-200">
+        <nav className="flex items-center gap-2 text-sm text-gray-500">
+          <Link href="/" className="hover:text-blue-600 flex items-center gap-1.5 font-semibold text-gray-800">
+            <span>🏠</span> Home
+          </Link>
+          <span>/</span>
+          <Link href="/estimates" className="hover:text-blue-600 font-medium">
+            Estimates
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-bold font-mono">{estimate.estimateNumber}</span>
+        </nav>
+        <div className="flex items-center gap-2">
+          <Link href="/">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+              <span>🏠</span> Main Homepage
+            </Button>
+          </Link>
+          <Link href="/estimates">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-medium bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+              <span>←</span> All Estimates
+            </Button>
+          </Link>
+          <Link href="/parcha/new">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 shadow-xs">
+              <span>📸</span> New Parcha
+            </Button>
+          </Link>
+        </div>
+      </div>
+
       {/* Top Header & Lifecycle Controls */}
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
@@ -329,6 +361,11 @@ export default function EstimateDetail({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="flex flex-wrap gap-2 items-center">
+          <Link href="/">
+            <Button variant="secondary" className="text-sm font-semibold flex items-center gap-1 bg-white hover:bg-gray-100 border-gray-300">
+              <span>🏠</span> Home
+            </Button>
+          </Link>
           <Link href={`/estimates/${estimate.id}/print`} target="_blank" rel="noreferrer">
             <Button variant="secondary" className="text-sm">🖨️ Print / PDF</Button>
           </Link>
