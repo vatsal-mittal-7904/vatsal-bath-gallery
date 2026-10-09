@@ -32,7 +32,10 @@ describe('Protected Layout', () => {
     const result = await ProtectedLayout({ children: 'test content' });
     
     expect(redirect).not.toHaveBeenCalled();
-    // In React testing for server components, it returns the children node tree
-    expect(result.props.children).toBe('test content');
+    // Layout renders AppHeader and main element wrapping children
+    const [header, main] = result.props.children;
+    expect(header.props.user).toEqual({ id: '123' });
+    expect(main.props.children).toBe('test content');
   });
 });
+

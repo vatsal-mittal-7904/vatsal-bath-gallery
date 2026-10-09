@@ -7,14 +7,11 @@ import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { Spinner } from '@/components/ui/Spinner';
 import { SafeUser } from '@/features/users/user.types';
-import { useAuth } from '@/components/auth/AuthProvider';
 import { hasPermission } from '@/features/auth/permissions';
 
 export default function DashboardClient({ user }: { user: SafeUser }) {
   const [status, setStatus] = useState<'loading' | 'healthy' | 'failed'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
-  
-  const { logout, state } = useAuth();
 
   const checkHealth = async () => {
     setErrorMsg('');
@@ -32,185 +29,271 @@ export default function DashboardClient({ user }: { user: SafeUser }) {
     checkHealth();
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.href = '/login'; // hard navigate to clear state safely
-  };
-
-  // Example of Role-Aware UI visibility
+  const canUploadParcha = hasPermission(user.role, 'parcha:upload');
+  const canReadParcha = hasPermission(user.role, 'parcha:read');
+  const canReadEstimates = hasPermission(user.role, 'estimates:read');
+  const canCreateBills = hasPermission(user.role, 'invoices:create');
+  const canReadBills = hasPermission(user.role, 'invoices:read');
+  const canReadCustomers = hasPermission(user.role, 'customers:read');
+  const canReadCatalogue = hasPermission(user.role, 'catalogue:read');
   const canViewProfit = hasPermission(user.role, 'reports:profit:read');
-  const canManageUsers = hasPermission(user.role, 'users:role:update');
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
-            Vatsal Bath Gallery
-          </Link>
-          <nav className="hidden md:flex items-center gap-4 text-sm font-medium text-gray-600">
-            {hasPermission(user.role, 'parcha:read') && (
-              <Link href="/parcha" className="hover:text-blue-600 transition-colors flex items-center gap-1.5 font-semibold text-blue-600">
-                <span>📸</span> Parcha OCR
-              </Link>
-            )}
-            {hasPermission(user.role, 'estimates:read') && (
-              <Link href="/estimates" className="hover:text-blue-600 transition-colors">
-                Estimates
-              </Link>
-            )}
-            {hasPermission(user.role, 'invoices:read') && (
-              <Link href="/bills" className="hover:text-blue-600 transition-colors">
-                Bills
-              </Link>
-            )}
-            {hasPermission(user.role, 'customers:read') && (
-              <Link href="/customers" className="hover:text-blue-600 transition-colors">
-                Customers
-              </Link>
-            )}
-            {hasPermission(user.role, 'catalogue:read') && (
-              <Link href="/catalogue" className="hover:text-blue-600 transition-colors">
-                Catalogue
-              </Link>
-            )}
-            {canViewProfit && (
-              <Link href="/reports/profit" className="hover:text-emerald-600 transition-colors flex items-center gap-1 font-semibold text-emerald-700">
-                <span>📈</span> Profit
-              </Link>
-            )}
-          </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-900">{user.name || user.email}</p>
-            <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-semibold rounded uppercase tracking-wider">
-              {user.role}
-            </span>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Executive Welcome Hero */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 p-6 sm:p-8 text-white shadow-md border border-slate-800">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-medium text-blue-200 border border-white/10">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Point of Sale & AI Estimating Suite</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              Welcome back, {user.name || user.email}
+            </h1>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Manage handwritten parcha digitizations, instant customer estimates, GST invoices, and live warehouse inventory in one unified system.
+            </p>
           </div>
-          <Button variant="secondary" onClick={handleLogout} disabled={state === 'loading'}>
-            Logout
-          </Button>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {canUploadParcha && (
+              <Link href="/parcha/new">
+                <Button className="bg-blue-600 hover:bg-blue-500 text-white shadow-sm flex items-center gap-2 px-4 py-2.5 text-sm font-semibold">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Upload Parcha</span>
+                </Button>
+              </Link>
+            )}
+            {canCreateBills && (
+              <Link href="/bills/new">
+                <Button variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-white/20 shadow-sm flex items-center gap-2 px-4 py-2.5 text-sm font-semibold">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>New Bill</span>
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
-      </header>
 
-      <main className="flex-grow p-6 flex flex-col items-center justify-start mt-8">
-        <Card className="w-full max-w-4xl p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            
-            {hasPermission(user.role, 'parcha:upload') && (
-              <Link href="/parcha/new" className="w-full">
-                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer bg-blue-50/80 hover:bg-blue-100/90 border border-blue-200">
-                  <span className="text-2xl">📸</span>
-                  <span className="font-semibold text-blue-900">Upload Parcha</span>
-                </Button>
+        {/* Decorative background glow */}
+        <div className="absolute -right-16 -top-16 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      </div>
+
+      {/* Operational Launchpad Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Parcha OCR Hub */}
+        <Card className="p-6 hover:shadow-md transition-shadow duration-200 border border-slate-200/90 flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xl border border-blue-100 shadow-2xs">
+              📸
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Parcha AI Digitization</h2>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Gemini-powered multimodal extraction converts handwritten contractor chits into structured line items automatically.
+              </p>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+            {canUploadParcha && (
+              <Link href="/parcha/new" className="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                + Upload New
               </Link>
             )}
-
-            {hasPermission(user.role, 'parcha:read') && (
-              <Link href="/parcha" className="w-full">
-                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
-                  <span className="text-2xl">📋</span>
-                  <span>Parcha Jobs</span>
-                </Button>
+            {canReadParcha && (
+              <Link href="/parcha" className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+                <span>View Jobs</span>
+                <span>→</span>
               </Link>
-            )}
-
-            {hasPermission(user.role, 'catalogue:read') && (
-              <Link href="/catalogue" className="w-full">
-                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
-                  <span className="text-2xl">📦</span>
-                  <span>Catalogue</span>
-                </Button>
-              </Link>
-            )}
-
-            {hasPermission(user.role, 'customers:read') && (
-              <Link href="/customers" className="w-full">
-                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
-                  <span className="text-2xl">👥</span>
-                  <span>Customers</span>
-                </Button>
-              </Link>
-            )}
-
-            {hasPermission(user.role, 'estimates:read') && (
-              <Link href="/estimates" className="w-full">
-                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
-                  <span className="text-2xl">📄</span>
-                  <span>Estimates</span>
-                </Button>
-              </Link>
-            )}
-
-            {hasPermission(user.role, 'invoices:read') && (
-              <Link href="/bills" className="w-full">
-                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 cursor-pointer">
-                  <span className="text-2xl">🧾</span>
-                  <span>Bills</span>
-                </Button>
-              </Link>
-            )}
-            
-            {canViewProfit && (
-              <Link href="/reports/profit" className="w-full">
-                <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 cursor-pointer text-emerald-900">
-                  <span className="text-2xl">📈</span>
-                  <span className="font-semibold">Profit Reports</span>
-                </Button>
-              </Link>
-            )}
-
-            {canManageUsers && (
-              <Button variant="secondary" className="w-full h-24 flex flex-col gap-2 bg-purple-50 hover:bg-purple-100 border border-purple-200">
-                <span className="text-2xl">👥</span>
-                <span>Manage Users</span>
-              </Button>
             )}
           </div>
         </Card>
 
-        <Card className="w-full max-w-2xl p-6 text-center space-y-6">
-          <div className="py-4 flex flex-col items-center">
-            <p className="text-sm font-medium text-gray-500 mb-2">System Status</p>
-            
-            {status === 'loading' && (
-              <div className="flex items-center text-blue-600 gap-2">
-                <Spinner />
-                <span>Connecting to services...</span>
-              </div>
-            )}
-            
-            {status === 'healthy' && (
-              <div className="flex items-center text-green-600 gap-2 font-medium">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span>All Systems Operational</span>
-              </div>
-            )}
-            
-            {status === 'failed' && (
-              <div className="flex flex-col items-center text-red-600 gap-2">
-                <div className="flex items-center gap-2 font-medium">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>Service Unavailable</span>
-                </div>
-                <span className="text-xs">{errorMsg}</span>
-              </div>
+        {/* Estimates Hub */}
+        <Card className="p-6 hover:shadow-md transition-shadow duration-200 border border-slate-200/90 flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xl border border-amber-100 shadow-2xs">
+              📄
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Quotations & Estimates</h2>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Generate clean, professional price quotes with catalogue pricing, custom rates, and instant PDF/print views.
+              </p>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+            <Link href="/estimates/new" className="text-xs font-semibold text-amber-600 hover:text-amber-800">
+              + New Estimate
+            </Link>
+            {canReadEstimates && (
+              <Link href="/estimates" className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+                <span>All Estimates</span>
+                <span>→</span>
+              </Link>
             )}
           </div>
+        </Card>
 
-          <Button 
-            variant="secondary" 
+        {/* Billing & Invoicing Hub */}
+        <Card className="p-6 hover:shadow-md transition-shadow duration-200 border border-slate-200/90 flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold text-xl border border-sky-100 shadow-2xs">
+              🧾
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">GST Bills & Invoices</h2>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Issue tax invoices, track partial payments, deduct warehouse stock automatically, and maintain balance ledgers.
+              </p>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+            {canCreateBills && (
+              <Link href="/bills/new" className="text-xs font-semibold text-sky-600 hover:text-sky-800">
+                + New Bill
+              </Link>
+            )}
+            {canReadBills && (
+              <Link href="/bills" className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+                <span>All Bills</span>
+                <span>→</span>
+              </Link>
+            )}
+          </div>
+        </Card>
+
+        {/* Customer Accounts */}
+        <Card className="p-6 hover:shadow-md transition-shadow duration-200 border border-slate-200/90 flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xl border border-violet-100 shadow-2xs">
+              👥
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Customers & Khata</h2>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Maintain contractor and homeowner profiles, GSTIN identification, addresses, and full purchasing history.
+              </p>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+            <Link href="/customers/new" className="text-xs font-semibold text-violet-600 hover:text-violet-800">
+              + New Customer
+            </Link>
+            {canReadCustomers && (
+              <Link href="/customers" className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+                <span>View Directory</span>
+                <span>→</span>
+              </Link>
+            )}
+          </div>
+        </Card>
+
+        {/* Catalogue & Inventory */}
+        <Card className="p-6 hover:shadow-md transition-shadow duration-200 border border-slate-200/90 flex flex-col justify-between space-y-4">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl border border-emerald-100 shadow-2xs">
+              📦
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Catalogue & Warehouses</h2>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Centralized repository of tiles, sanitaryware, fittings, SKU variants, and stock balances across store locations.
+              </p>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+            {canReadCatalogue && (
+              <Link href="/catalogue/products" className="text-xs font-semibold text-emerald-600 hover:text-emerald-800">
+                Browse Products
+              </Link>
+            )}
+            <Link href="/catalogue" className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+              <span>Overview</span>
+              <span>→</span>
+            </Link>
+          </div>
+        </Card>
+
+        {/* Owner Executive Intelligence (Role-gated) */}
+        {canViewProfit && (
+          <Card className="p-6 hover:shadow-md transition-shadow duration-200 border border-emerald-300 bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xl border border-emerald-200 shadow-2xs">
+                  📈
+                </div>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-200 text-emerald-900">
+                  Owner Confidential
+                </span>
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Profit & Margin Intelligence</h2>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Real-time gross margin tracking, wholesale cost vs retail revenue reconciliation, and top performing product analytics.
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-emerald-200 flex items-center justify-between gap-2">
+              <span className="text-[11px] font-medium text-emerald-800">Protected financial metrics</span>
+              <Link href="/reports/profit" className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1">
+                <span>Open Analytics</span>
+                <span>→</span>
+              </Link>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {/* System Status & Connectivity Bar */}
+      <Card className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-slate-200/90 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col">
+            {status === 'loading' && (
+              <div className="flex items-center text-blue-600 gap-2">
+                <Spinner className="w-4 h-4" />
+                <span className="text-xs font-semibold">Connecting to services...</span>
+              </div>
+            )}
+            {status === 'healthy' && (
+              <div className="flex items-center text-emerald-600 gap-2 font-medium">
+                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
+                <span className="text-xs font-semibold">All Systems Operational</span>
+              </div>
+            )}
+            {status === 'failed' && (
+              <div className="flex flex-col text-red-600">
+                <div className="flex items-center gap-2 font-medium">
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+                  <span className="text-xs font-semibold">Service Unavailable</span>
+                </div>
+                <span className="text-xs text-red-500 mt-0.5">{errorMsg}</span>
+              </div>
+            )}
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              PostgreSQL Database • Gemini 2.5 Flash OCR Engine • Prisma ORM
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
             onClick={checkHealth}
             disabled={status === 'loading'}
-            className="w-full max-w-xs mx-auto"
+            className="text-xs py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
           >
             Retry Connection
           </Button>
-        </Card>
-      </main>
+        </div>
+      </Card>
+
     </div>
   );
 }

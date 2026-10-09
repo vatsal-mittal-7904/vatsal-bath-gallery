@@ -3,8 +3,10 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+
 
 export default function ParchaUploadPage() {
   const router = useRouter();
@@ -69,10 +71,26 @@ export default function ParchaUploadPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Upload Parcha Image</h1>
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Top Breadcrumb */}
+      <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+        <Link href="/" className="hover:text-blue-600 transition-colors">
+          Home
+        </Link>
+        <span>/</span>
+        <Link href="/parcha" className="hover:text-blue-600 transition-colors">
+          Parcha Jobs
+        </Link>
+        <span>/</span>
+        <span className="text-slate-900 font-semibold">Upload</span>
+      </div>
+
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Upload Parcha Image</h1>
+        <p className="text-xs text-slate-500">Photograph or scan contractor handwritten chits for automated OCR digitizing.</p>
+      </div>
       
-      <Card className="p-6">
+      <Card className="p-6 border border-slate-200/90 shadow-xs">
         <form onSubmit={handleUpload} className="space-y-6">
           {error && <div className="p-3 bg-red-50 text-red-600 rounded">{error}</div>}
 

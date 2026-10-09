@@ -32,60 +32,102 @@ export default function CustomerDetail({ params }: { params: Promise<{ id: strin
     }
   };
 
-  if (loading) return <div className="p-6"><Spinner /></div>;
-  if (!customer) return <div className="p-6">Customer not found</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center p-12">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-center text-xs text-slate-500">
+        Customer record not found.
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Quick Navigation & Breadcrumb Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-200">
-        <nav className="flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/" className="hover:text-blue-600 flex items-center gap-1.5 font-semibold text-gray-800">
-            <span>🏠</span> Home
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Top Breadcrumb & Actions Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+          <Link href="/" className="hover:text-blue-600 transition-colors">
+            Home
           </Link>
           <span>/</span>
-          <Link href="/customers" className="hover:text-blue-600 font-medium">
+          <Link href="/customers" className="hover:text-blue-600 transition-colors">
             Customers
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-bold">{customer.name}</span>
-        </nav>
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
-              <span>🏠</span> Main Homepage
-            </Button>
-          </Link>
-          <Link href="/customers">
-            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-medium bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
-              <span>←</span> All Customers
-            </Button>
-          </Link>
+          <span className="text-slate-900 font-bold">{customer.name}</span>
         </div>
-      </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{customer.name}</h1>
-        <div className="flex gap-2">
-          <Link href="/">
-            <Button variant="secondary" className="text-sm font-semibold flex items-center gap-1 bg-white hover:bg-gray-100 border-gray-300">
-              <span>🏠</span> Home
+        <div className="flex items-center gap-2">
+          <Link href="/customers">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 bg-white hover:bg-slate-50 border-slate-200">
+              ← Back to Directory
             </Button>
           </Link>
           <Link href={`/customers/${customer.id}/edit`}>
-            <Button variant="secondary">Edit</Button>
+            <Button variant="secondary" className="text-xs px-3 py-1.5 bg-white hover:bg-slate-50 border-slate-200">
+              Edit
+            </Button>
           </Link>
           {customer.isActive && (
-            <Button variant="secondary" onClick={handleArchive} className="text-red-600 border-red-200 hover:bg-red-50">Archive</Button>
+            <Button
+              variant="secondary"
+              onClick={handleArchive}
+              className="text-xs px-3 py-1.5 text-red-600 border-red-200 hover:bg-red-50"
+            >
+              Archive
+            </Button>
           )}
         </div>
       </div>
-      <Card className="p-6 space-y-4">
-        <div><strong className="block text-sm text-gray-500">Phone</strong> {customer.phoneNumber}</div>
-        <div><strong className="block text-sm text-gray-500">Email</strong> {customer.email || '-'}</div>
-        <div><strong className="block text-sm text-gray-500">Address</strong> {customer.address || '-'}</div>
-        <div><strong className="block text-sm text-gray-500">GSTIN</strong> {customer.gstin || '-'}</div>
-        <div><strong className="block text-sm text-gray-500">Status</strong> {customer.isActive ? 'Active' : 'Archived'}</div>
+
+      {/* Customer Header Card */}
+      <Card className="p-6 border border-slate-200/90 shadow-xs">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 text-white flex items-center justify-center font-extrabold text-2xl shadow-sm shrink-0">
+            {(customer.name?.[0] || 'C').toUpperCase()}
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold text-slate-900">{customer.name}</h1>
+              {customer.isActive ? (
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Active
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">
+                  Archived
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500">Customer ID: <code className="text-slate-700 font-mono">{customer.id}</code></p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-100">
+          <div className="bg-slate-50/60 p-3.5 rounded-lg border border-slate-200/60">
+            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">Phone Number</span>
+            <span className="text-sm font-semibold text-slate-800">{customer.phoneNumber || '—'}</span>
+          </div>
+          <div className="bg-slate-50/60 p-3.5 rounded-lg border border-slate-200/60">
+            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">Email Address</span>
+            <span className="text-sm font-semibold text-slate-800">{customer.email || '—'}</span>
+          </div>
+          <div className="bg-slate-50/60 p-3.5 rounded-lg border border-slate-200/60">
+            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">GSTIN Identification</span>
+            <span className="text-sm font-semibold text-slate-800 font-mono">{customer.gstin || 'Unregistered'}</span>
+          </div>
+          <div className="bg-slate-50/60 p-3.5 rounded-lg border border-slate-200/60">
+            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">Billing Address</span>
+            <span className="text-sm font-semibold text-slate-800">{customer.address || '—'}</span>
+          </div>
+        </div>
       </Card>
     </div>
   );

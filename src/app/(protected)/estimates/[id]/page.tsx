@@ -306,38 +306,40 @@ export default function EstimateDetail({ params }: { params: Promise<{ id: strin
   const canEdit = !isConverted;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
-      {/* Quick Navigation & Breadcrumb Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-200">
-        <nav className="flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/" className="hover:text-blue-600 flex items-center gap-1.5 font-semibold text-gray-800">
-            <span>🏠</span> Home
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Top Breadcrumb & Return Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+          <Link href="/" className="hover:text-blue-600 transition-colors">
+            Home
           </Link>
           <span>/</span>
-          <Link href="/estimates" className="hover:text-blue-600 font-medium">
+          <Link href="/estimates" className="hover:text-blue-600 transition-colors">
             Estimates
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-bold font-mono">{estimate.estimateNumber}</span>
-        </nav>
+          <span className="text-slate-900 font-bold font-mono">{estimate.estimateNumber}</span>
+        </div>
+
         <div className="flex items-center gap-2">
-          <Link href="/">
-            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
-              <span>🏠</span> Main Homepage
-            </Button>
-          </Link>
           <Link href="/estimates">
-            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-medium bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 bg-white hover:bg-slate-50 border-slate-200 shadow-2xs font-medium flex items-center gap-1.5">
               <span>←</span> All Estimates
             </Button>
           </Link>
           <Link href="/parcha/new">
-            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 shadow-xs">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 shadow-2xs font-semibold flex items-center gap-1.5">
               <span>📸</span> New Parcha
+            </Button>
+          </Link>
+          <Link href="/">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 bg-white hover:bg-slate-50 border-slate-200 shadow-2xs font-semibold flex items-center gap-1.5">
+              <span>🏠</span> Dashboard
             </Button>
           </Link>
         </div>
       </div>
+
 
       {/* Top Header & Lifecycle Controls */}
       <div className="flex flex-wrap justify-between items-center gap-4">

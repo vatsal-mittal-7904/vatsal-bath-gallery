@@ -3,10 +3,12 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { fetchApi } from '@/lib/api-client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+
 
 export default function EstimateForm() {
   const router = useRouter();
@@ -112,9 +114,27 @@ export default function EstimateForm() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">New Estimate</h1>
-      <Card className="p-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Top Breadcrumb */}
+      <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+        <Link href="/" className="hover:text-blue-600 transition-colors">
+          Home
+        </Link>
+        <span>/</span>
+        <Link href="/estimates" className="hover:text-blue-600 transition-colors">
+          Estimates
+        </Link>
+        <span>/</span>
+        <span className="text-slate-900 font-semibold">New Estimate</span>
+      </div>
+
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create Quotation / Estimate</h1>
+        <p className="text-xs text-slate-500">Generate draft pricing for contractors or customers with ceiling rounding.</p>
+      </div>
+
+      <Card className="p-6 border border-slate-200/90 shadow-xs">
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && <div className="text-red-500 text-sm">{error}</div>}
           

@@ -124,26 +124,41 @@ export default function ProfitReportPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Top Breadcrumb & Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1">
+            <Link href="/" className="hover:text-blue-600 transition-colors">
+              Home
+            </Link>
+            <span>/</span>
+            <span className="text-slate-900 font-semibold">Profit Analytics</span>
+          </div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">Profit & Margin Analytics</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Profit & Margin Analytics</h1>
             <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded uppercase tracking-wider">
               Owner Exclusive
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Real-time gross profit calculations based on invoice revenue and variant wholesale cost prices (COGS).
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/bills">
-            <Button variant="secondary" className="text-sm">← Back to Bills</Button>
+            <Button variant="secondary" className="text-xs px-3 py-1.5 bg-white hover:bg-slate-50 border-slate-200">
+              ← Back to Bills
+            </Button>
+          </Link>
+          <Link href="/">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 bg-white hover:bg-slate-50 border-slate-200 font-semibold">
+              🏠 Dashboard
+            </Button>
           </Link>
         </div>
       </div>
+
 
       {/* Filters Card */}
       <Card className="p-4 bg-white border-gray-200 shadow-xs">

@@ -149,52 +149,46 @@ export default function ParchaDetailPage({ params }: { params: Promise<{ id: str
   if (loading || !job) return <div className="p-6 flex justify-center"><Spinner /></div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Quick Navigation & Breadcrumb Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-6 border-b border-gray-200">
-        <nav className="flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/" className="hover:text-blue-600 flex items-center gap-1.5 font-semibold text-gray-800">
-            <span>🏠</span> Home
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Top Breadcrumb & Actions Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+          <Link href="/" className="hover:text-blue-600 transition-colors">
+            Home
           </Link>
           <span>/</span>
-          <Link href="/parcha" className="hover:text-blue-600 font-medium">
+          <Link href="/parcha" className="hover:text-blue-600 transition-colors">
             Parcha Jobs
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-bold font-mono">Job #{job.id.slice(0, 8)}</span>
-        </nav>
+          <span className="text-slate-900 font-bold font-mono">Job #{job.id.slice(0, 8)}</span>
+        </div>
         <div className="flex items-center gap-2">
-          <Link href="/">
-            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
-              <span>🏠</span> Main Homepage
-            </Button>
-          </Link>
           <Link href="/parcha">
-            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-medium bg-white hover:bg-gray-100 border-gray-300 shadow-xs">
-              <span>←</span> All Jobs
+            <Button variant="secondary" className="text-xs px-3 py-1.5 bg-white hover:bg-slate-50 border-slate-200">
+              ← Back to Jobs
             </Button>
           </Link>
           <Link href="/parcha/new">
-            <Button variant="secondary" className="text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 shadow-xs">
-              <span>📸</span> New Parcha
+            <Button variant="secondary" className="text-xs px-3 py-1.5 text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 font-semibold">
+              📸 New Parcha
+            </Button>
+          </Link>
+          <Link href="/">
+            <Button variant="secondary" className="text-xs px-3 py-1.5 bg-white hover:bg-slate-50 border-slate-200 font-semibold">
+              🏠 Dashboard
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Parcha Job Details</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <Button variant="secondary" className="text-sm font-semibold flex items-center gap-1 bg-white hover:bg-gray-100 border-gray-300">
-              <span>🏠</span> Home
-            </Button>
-          </Link>
-          <Link href="/parcha" className="text-blue-600 hover:underline text-sm font-medium">
-            &larr; Back to List
-          </Link>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Parcha Verification & Matching</h1>
+          <p className="text-xs text-slate-500">Compare original chit image against AI extracted items and assign catalogue matches.</p>
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card className="p-4 bg-gray-50 border border-gray-200 shadow-sm flex flex-col items-center md:col-span-1">
